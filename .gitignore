@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+.eggs/
+*.whl
+
+# Virtual environments / 虚拟环境
+.venv/
+venv/
+ENV/
+
+# Environment variables / 环境变量
+.env
+.env.local
+.env.*.local
+
+# IDE & editors / 编辑器
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.history/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / 日志
+logs/
+*.log
+
+# Testing / 测试
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Deploy runtime / 部署运行时
+deploy_projects.json
