@@ -37,7 +37,7 @@ deploy_router = APIRouter()
 
 # 项目接入规范 HTML，从独立文件加载（避免在代码中维护大段 HTML）
 # Load onboarding spec HTML from a separate file to keep this module clean
-_SPEC_HTML = (Path(__file__).parent / "deploy_spec.html").read_text(encoding="utf-8")
+_SPEC_HTML = (Path(__file__).parent / "templates" / "deploy_spec.html").read_text(encoding="utf-8")
 
 # ── Project persistence / 工程持久化 ─────────────────────────────────────────
 

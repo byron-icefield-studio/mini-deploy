@@ -75,7 +75,7 @@ async function submitAddForm(event) {
   const fd = new FormData(event.target);
   const data = Object.fromEntries(fd.entries());
   data.self_service = fd.has('self_service');
-  const r = await fetch('/deploy/projects', {
+  const r = await fetch('/projects', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(data),
@@ -91,7 +91,7 @@ async function submitAddForm(event) {
 // 删除工程 / Delete project
 async function deleteProject(id) {
   if (!confirm('确认删除此工程？')) return;
-  const r = await fetch('/deploy/projects/' + id, {method: 'DELETE'});
+  const r = await fetch('/projects/' + id, {method: 'DELETE'});
   if (r.ok) {
     const item = document.getElementById('item-' + id);
     if (item) item.remove();
@@ -116,7 +116,7 @@ async function triggerDeploy(id, btn) {
   if (rb) rb.disabled = true;
   const logbox = document.getElementById('logbox-' + id);
   if (logbox) logbox.textContent = '';
-  const r = await fetch('/deploy/projects/' + id + '/trigger', {method: 'POST'});
+  const r = await fetch('/projects/' + id + '/trigger', {method: 'POST'});
   if (r.status === 409) {
     alert('该工程已有部署任务在执行中');
     btn.disabled = false;
@@ -136,7 +136,7 @@ async function triggerRollback(id, btn) {
   btn.textContent = '回滚中…';
   const logbox = document.getElementById('logbox-' + id);
   if (logbox) logbox.textContent = '';
-  const r = await fetch('/deploy/projects/' + id + '/rollback', {method: 'POST'});
+  const r = await fetch('/projects/' + id + '/rollback', {method: 'POST'});
   if (!r.ok) {
     const e = await r.json().catch(() => ({}));
     alert('回滚失败: ' + (e.detail || r.status));
@@ -153,7 +153,7 @@ const _sse = {};
 const _watchTimers = {};
 function connectSSE(id) {
   if (_sse[id]) { _sse[id].close(); delete _sse[id]; }
-  const es = new EventSource('/deploy/projects/' + id + '/stream');
+  const es = new EventSource('/projects/' + id + '/stream');
   _sse[id] = es;
   const logbox = document.getElementById('logbox-' + id);
   es.onmessage = e => {
@@ -206,7 +206,7 @@ async function saveSetting(event, key) {
   const body = new FormData();
   body.append('key', key);
   body.append('value', value);
-  const r = await fetch('/deploy/config/update', {method: 'POST', body});
+  const r = await fetch('/config/update', {method: 'POST', body});
   if (r.ok) {
     const saved = form.querySelector('.setting-saved');
     if (saved) { saved.style.display = 'inline'; setTimeout(() => saved.style.display = 'none', 2000); }
@@ -260,7 +260,7 @@ async function submitEditForm(event) {
   const data = Object.fromEntries(fd.entries());
   delete data._id;
   data.self_service = fd.has('self_service');
-  const r = await fetch('/deploy/projects/' + id, {
+  const r = await fetch('/projects/' + id, {
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(data),
@@ -276,7 +276,7 @@ async function submitEditForm(event) {
 // 轮询工程状态 / Poll project status
 async function pollStatus(id) {
   try {
-    const r = await fetch('/deploy/projects/' + id + '/status');
+    const r = await fetch('/projects/' + id + '/status');
     const d = await r.json();
     const detail = document.getElementById('proj-' + id);
     const p = detail ? JSON.parse(detail.dataset.project) : {};
@@ -332,7 +332,7 @@ async function initProject(id) {
   const logbox = document.getElementById('logbox-' + id);
   if (logbox && !logbox.textContent.trim()) {
     try {
-      const r = await fetch('/deploy/projects/' + id + '/logs');
+      const r = await fetch('/projects/' + id + '/logs');
       const text = await r.text();
       if (text.trim()) {
         logbox.textContent = text.trimEnd();
