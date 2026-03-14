@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # install.sh — Mini Deploy 一键安装脚本
-# One-liner: curl -fsSL https://raw.githubusercontent.com/byronicefield/mini-deploy/main/install.sh | bash
+# One-liner: curl -fsSL https://raw.githubusercontent.com/byron-icefield-studio/mini-deploy/main/install.sh | bash
 #
 # 功能 / Features:
 #   1. 检查前置依赖（Docker、Docker Compose）
@@ -8,7 +8,7 @@
 #   3. 在当前目录生成 docker-compose.yml 和 .env
 #   4. 启动服务（除非传入 --no-start）
 
-REPO_URL="https://github.com/byronicefield/mini-deploy.git"
+REPO_URL="https://github.com/byron-icefield-studio/mini-deploy.git"
 IMAGE_NAME="mini-deploy:latest"
 
 set -euo pipefail

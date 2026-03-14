@@ -24,7 +24,7 @@
 一行命令完成安装：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/byronicefield/mini-deploy/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/byron-icefield-studio/mini-deploy/main/install.sh | bash
 ```
 
 脚本会自动完成：克隆源码 → 本地构建 Docker 镜像 → 生成 `docker-compose.yml` 和 `.env` → 启动服务。
