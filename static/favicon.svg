@@ -1,0 +1,19 @@
+<!-- Mini Deploy Logo / 发布系统图标 - 火箭升空 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 背景圆角方块 / Rounded square background -->
+  <rect width="64" height="64" rx="14" fill="#1e293b"/>
+  <!-- 火箭主体 / Rocket body -->
+  <path d="M32 14 C26 22 23 30 23 37 C23 42 27 46 32 46 C37 46 41 42 41 37 C41 30 38 22 32 14Z" fill="#38bdf8"/>
+  <!-- 火箭头部高光 / Rocket nose highlight -->
+  <path d="M32 14 C29 20 27 26 26 32 C28 28 30 22 32 14Z" fill="#7dd3fc" opacity="0.5"/>
+  <!-- 火箭窗口 / Rocket window -->
+  <circle cx="32" cy="32" r="3.5" fill="#1e293b"/>
+  <circle cx="32" cy="32" r="2.5" fill="#1e293b" stroke="#7dd3fc" stroke-width="0.5"/>
+  <!-- 左翼 / Left fin -->
+  <path d="M23 37 L18 44 L23 43Z" fill="#2196f3"/>
+  <!-- 右翼 / Right fin -->
+  <path d="M41 37 L46 44 L41 43Z" fill="#2196f3"/>
+  <!-- 尾焰 / Exhaust flame -->
+  <path d="M28 46 Q30 54 32 56 Q34 54 36 46" fill="#f97316"/>
+  <path d="M29.5 46 Q31 52 32 53 Q33 52 34.5 46" fill="#fbbf24"/>
+</svg>

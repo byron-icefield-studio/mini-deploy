@@ -5,7 +5,10 @@ Mini Deploy entry point: lightweight deployment management service.
 Supports one-click deployment for Python / Java / Frontend / Generic Docker projects.
 """
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from deploy_api import deploy_router
 
 app = FastAPI(title="Mini Deploy")
+# 挂载静态资源目录 / Mount static files directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(deploy_router)
