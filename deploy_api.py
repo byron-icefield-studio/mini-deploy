@@ -33,7 +33,7 @@ _templates = Environment(
     autoescape=False,
 )
 
-deploy_router = APIRouter(prefix="/deploy")
+deploy_router = APIRouter()
 
 # 项目接入规范 HTML，从独立文件加载（避免在代码中维护大段 HTML）
 # Load onboarding spec HTML from a separate file to keep this module clean

@@ -147,7 +147,7 @@ details[open].card summary::after{content:" ↑";font-size:.75rem}
       <div class="setting-row">
         <span class="setting-label">默认 Compose</span>
         <form class="setting-form" onsubmit="saveSetting(event,'DEPLOY_COMPOSE_FILE')">
-          <input type="text" name="value" value="{{ compose_file }}">
+          <input type="text" name="value" placeholder="{{ compose_file }}">
           <button type="submit" class="setting-save-btn">保存</button>
           <span class="setting-saved">已保存 ✓</span>
         </form>
