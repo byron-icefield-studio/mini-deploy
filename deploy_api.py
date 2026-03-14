@@ -930,6 +930,33 @@ async def delete_project(project_id: str):
     return JSONResponse({"ok": True})
 
 
+@deploy_router.get("/projects")
+async def list_projects():
+    """获取所有工程列表及部署状态摘要。
+    List all projects with deployment status summary.
+    """
+    projects = load_deploy_projects()
+    result = []
+    for p in projects:
+        ps = state.deploy.get_project(p["id"])
+        # 当前正在部署时用运行时 phase，否则用持久化的 last_phase
+        # Use runtime phase if deploying, otherwise use persisted last_phase
+        phase = ps.phase if ps.phase != "idle" else (p.get("last_phase") or "idle")
+        docker_status = await _get_docker_status(p["service_name"]) if p.get("service_name") else "—"
+        result.append({
+            "id": p["id"],
+            "name": p["name"],
+            "project_type": p.get("project_type", ""),
+            "service_name": p.get("service_name", ""),
+            "phase": phase,
+            "step": ps.step,
+            "error": ps.error or p.get("last_error"),
+            "last_finished_at": p.get("last_finished_at"),
+            "docker_status": docker_status,
+        })
+    return result
+
+
 @deploy_router.post("/projects/{project_id}/trigger")
 async def trigger_deploy(project_id: str):
     """触发部署。
