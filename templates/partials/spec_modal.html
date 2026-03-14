@@ -1,0 +1,12 @@
+{# 接入规范弹窗 / Spec modal #}
+<div id="spec-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-card spec-modal-card">
+    <div class="modal-h">
+      <h2>项目接入规范</h2>
+      <button class="modal-close" onclick="document.getElementById('spec-modal').style.display='none'">×</button>
+    </div>
+    <div class="card-b">
+      {{ spec_html }}
+    </div>
+  </div>
+</div>

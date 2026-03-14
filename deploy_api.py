@@ -21,10 +21,17 @@ from typing import Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from jinja2 import Environment, FileSystemLoader
 from pydantic import BaseModel
 
 import state
 from config import settings
+
+# Jinja2 模板引擎 / Jinja2 template engine
+_templates = Environment(
+    loader=FileSystemLoader(Path(__file__).parent / "templates"),
+    autoescape=False,
+)
 
 deploy_router = APIRouter(prefix="/deploy")
 
@@ -663,476 +670,6 @@ _PHASE_LABELS = {
     "error":      ("失败",    "#dc2626"),
 }
 
-_CSS = """
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
-nav{background:#1e293b;padding:.7rem 1.5rem;display:flex;align-items:center;gap:.75rem}
-.back-btn{color:#94a3b8;text-decoration:none;font-size:.85rem;padding:.3rem .7rem;border:1px solid #334155;border-radius:6px;transition:all .15s}
-.back-btn:hover{color:#fff;background:#334155}
-.nav-title{color:#94a3b8;font-size:.85rem;flex:1}
-.add-btn{padding:.35rem .9rem;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.85rem;font-weight:500;flex-shrink:0}
-.add-btn:hover{background:#1d4ed8}
-.page{padding:1.25rem 1.5rem;width:100%;max-width:none;min-height:calc(100vh - 54px)}
-.card{background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);border:1px solid #e2e8f0;overflow:hidden;margin-bottom:1rem}
-.card-h{padding:.85rem 1rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
-.card-h h2{font-size:.9rem;font-weight:600}
-.card-b{padding:1rem}
-.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
-.badge{font-size:.72rem;padding:.15rem .5rem;border-radius:20px;font-weight:600;white-space:nowrap}
-.proj-name{font-weight:600;font-size:.92rem;flex:1;min-width:0}
-.proj-actions{display:flex;gap:.35rem;flex-shrink:0}
-.act-btn{padding:.2rem .6rem;font-size:.74rem;font-weight:600;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:5px;cursor:pointer;white-space:nowrap;transition:all .15s}
-.act-btn:hover{background:#e2e8f0}
-.act-btn:disabled{opacity:.5;cursor:not-allowed}
-.act-btn-primary{background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe}
-.act-btn-primary:hover{background:#bfdbfe}
-.act-btn-danger{background:#fef2f2;color:#dc2626;border-color:#fecaca}
-.act-btn-danger:hover{background:#fee2e2}
-.proj-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.65rem}
-.meta-row{display:flex;flex-direction:column;font-size:.83rem;gap:.25rem;padding:.55rem .65rem;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;min-width:0}
-.ml{color:#94a3b8;flex-shrink:0;font-size:.74rem}
-.mv{color:#334155;font-weight:500;overflow-wrap:anywhere;word-break:break-word;white-space:normal;max-width:none;font-size:.83rem}
-.mv-mono{font-family:monospace;font-size:.78rem}
-.log-wrap{border-top:1px solid #f1f5f9}
-.log-box{background:#0f172a;color:#e2e8f0;padding:.9rem 1rem;font-family:monospace;font-size:.78rem;line-height:1.6;height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
-.form-row{display:flex;flex-direction:column;gap:.25rem}
-.form-row label{font-size:.78rem;font-weight:600;color:#475569}
-.form-row input{padding:.4rem .65rem;border:1px solid #e2e8f0;border-radius:6px;font-size:.84rem;width:100%}
-.form-row input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 2px #bfdbfe50}
-.form-row select{padding:.4rem .65rem;border:1px solid #e2e8f0;border-radius:6px;font-size:.84rem;width:100%;background:#fff;color:#1e293b;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .65rem center}
-.form-row select:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 2px #bfdbfe50}
-.form-hint{font-size:.72rem;color:#94a3b8;margin-top:.1rem}
-.checkbox-label{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#475569;cursor:pointer}
-.checkbox-label input[type=checkbox]{width:15px;height:15px;cursor:pointer}
-.form-full{grid-column:1/-1}
-.form-actions{grid-column:1/-1;display:flex;gap:.5rem;margin-top:.15rem}
-.primary-btn{padding:.4rem 1.2rem;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.84rem;font-weight:500}
-.primary-btn:hover{background:#1d4ed8}
-.cancel-btn{padding:.4rem .9rem;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-size:.84rem}
-.empty-state{text-align:center;padding:3.5rem 1rem;color:#94a3b8}
-.empty-text{font-size:.95rem;font-weight:600;margin:.4rem 0 .25rem;color:#64748b}
-.empty-hint{font-size:.82rem}
-details.card summary{list-style:none;padding:.85rem 1rem;font-size:.88rem;font-weight:600;cursor:pointer;user-select:none;color:#475569}
-details.card summary::-webkit-details-marker{display:none}
-details.card summary::after{content:" ↓";font-size:.75rem;color:#94a3b8}
-details[open].card summary::after{content:" ↑";font-size:.75rem}
-.spec-section{margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid #f1f5f9}
-.spec-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
-.spec-title{font-size:.82rem;font-weight:600;color:#1e293b;margin-bottom:.3rem}
-.spec-title code{background:#f1f5f9;padding:.1rem .35rem;border-radius:4px;font-size:.78rem;color:#6366f1}
-.spec-desc{font-size:.8rem;color:#64748b;margin-bottom:.5rem}
-.spec-code{background:#0f172a;color:#e2e8f0;border-radius:7px;padding:.75rem 1rem;font-family:monospace;font-size:.76rem;line-height:1.6;overflow-x:auto;white-space:pre}
-.spec-tbl{width:100%;border-collapse:collapse;font-size:.8rem}
-.spec-tbl tr{border-bottom:1px solid #f8fafc}
-.spec-tbl tr:last-child{border-bottom:none}
-.spec-tbl td{padding:.35rem .5rem;vertical-align:top}
-.spec-tbl td:first-child code{background:#f1f5f9;padding:.1rem .35rem;border-radius:4px;color:#6366f1;font-size:.78rem;white-space:nowrap}
-.spec-tbl td:last-child{color:#64748b}
-.setting-row{display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid #f8fafc;flex-wrap:wrap}
-.setting-row:last-child{border-bottom:none}
-.setting-label{font-size:.82rem;color:#475569;font-weight:500;width:140px;flex-shrink:0}
-.setting-form{display:flex;align-items:center;gap:.4rem;flex:1;min-width:0}
-.setting-form input{flex:1;min-width:0;padding:.35rem .6rem;border:1px solid #e2e8f0;border-radius:6px;font-size:.83rem}
-.setting-form input:focus{outline:none;border-color:#3b82f6}
-.setting-save-btn{padding:.3rem .75rem;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap;flex-shrink:0}
-.setting-save-btn:hover{background:#1d4ed8}
-.setting-saved{font-size:.75rem;color:#16a34a;display:none}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100}
-.modal-card{background:#fff;border-radius:10px;width:min(620px,92vw);max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
-.modal-h{padding:.85rem 1rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between}
-.modal-h h2{font-size:.9rem;font-weight:600}
-.modal-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:#94a3b8;padding:.1rem .4rem;border-radius:4px}
-.modal-close:hover{color:#1e293b;background:#f1f5f9}
-.steps-bar{border-top:1px solid #f1f5f9;padding:.45rem .75rem .45rem;display:flex;position:relative}
-.steps-bar::before{content:'';position:absolute;top:calc(.45rem + 8px);left:calc(.75rem + 9px);right:calc(.75rem + 9px);height:2px;background:#e2e8f0;z-index:0}
-.step-item{display:flex;flex-direction:column;align-items:center;flex:1;z-index:1}
-.step-dot{width:18px;height:18px;border-radius:50%;border:2px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:#fff;transition:all .25s}
-.step-item.done .step-dot{background:#22c55e;border-color:#22c55e}
-.step-item.active .step-dot{background:#3b82f6;border-color:#3b82f6;animation:step-pulse 1.2s infinite}
-.step-item.error .step-dot{background:#dc2626;border-color:#dc2626}
-.step-lbl{font-size:.6rem;color:#94a3b8;margin-top:.2rem;text-align:center;white-space:nowrap;line-height:1.2}
-.step-item.done .step-lbl{color:#16a34a}
-.step-item.active .step-lbl{color:#2563eb;font-weight:600}
-.step-item.error .step-lbl{color:#dc2626}
-@keyframes step-pulse{0%,100%{box-shadow:0 0 0 0 #3b82f650}60%{box-shadow:0 0 0 5px #3b82f620}}
-/* ── 左右布局 / Left-right layout ── */
-.deploy-layout{display:flex;gap:1rem;align-items:flex-start;width:100%}
-.proj-sidebar{width:clamp(300px,34vw,460px);flex-shrink:0;background:#fff;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden}
-.sidebar-h{padding:.65rem .85rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;background:#f8fafc}
-.sidebar-title{font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
-.sidebar-add{padding:.15rem .5rem;background:#2563eb;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.8rem;font-weight:600;line-height:1.5}
-.sidebar-add:hover{background:#1d4ed8}
-.proj-list{padding:.6rem;display:flex;flex-direction:column;gap:.55rem}
-.proj-item{padding:.65rem .75rem;cursor:pointer;display:flex;flex-direction:column;gap:.35rem;border:1px solid #e2e8f0;border-radius:9px;transition:all .12s;min-width:0;background:#fff}
-.proj-item:hover{background:#f8fafc;border-color:#cbd5e1}
-.proj-item.selected{background:#eff6ff;border-color:#93c5fd;box-shadow:inset 3px 0 0 #3b82f6}
-.item-row1{display:flex;align-items:flex-start;gap:.45rem;width:100%;min-width:0}
-.item-name{flex:1;font-size:.86rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.item-status{font-size:.64rem;font-weight:600;padding:.1rem .38rem;border-radius:10px;white-space:nowrap;flex-shrink:0;max-width:70px;overflow:hidden;text-overflow:ellipsis}
-.item-row2{display:flex;gap:.55rem;flex-wrap:wrap}
-.item-kv{font-size:.72rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;padding:.1rem .35rem;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.item-meta{font-size:.72rem;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;line-height:1.35}
-.sidebar-empty{padding:1.2rem .85rem;color:#94a3b8;font-size:.8rem;text-align:center}
-.spec-nav-btn{padding:.3rem .65rem;background:transparent;color:#94a3b8;border:1px solid #475569;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap;flex-shrink:0}
-.spec-nav-btn:hover{color:#fff;background:#334155}
-.spec-modal-card{width:min(860px,95vw)}
-.proj-detail-wrap{flex:1;min-width:0}
-.detail-empty{background:#fff;border-radius:10px;border:1px solid #e2e8f0;color:#94a3b8;text-align:center;padding:5rem 1rem;font-size:.88rem}
-.proj-detail{background:#fff;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden}
-.detail-h{padding:.85rem 1rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
-.detail-name{font-weight:600;font-size:.92rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:980px){
-  nav{padding:.7rem 1rem;flex-wrap:wrap}
-  .page{padding:1rem}
-  .deploy-layout{flex-direction:column}
-  .proj-sidebar{width:100%}
-  .proj-detail-wrap{width:100%}
-}
-@media (max-width:720px){
-  .form-grid{grid-template-columns:1fr}
-  .form-actions{flex-wrap:wrap}
-  .proj-actions{width:100%;justify-content:flex-start;flex-wrap:wrap}
-  .detail-h{align-items:flex-start}
-  .item-name{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-}
-"""
-
-_JS = r"""
-// 步骤 → 进度条索引映射（5步：Clone / Build / Deploy / 验证 / 完成）
-// Step-to-bar-index map: Clone=0 Build=1 Deploy=2 Health=3 Done=4
-const _STEP_IDX = {
-  clone:0, backup:0,
-  pre_build:1, build:1, post_build:1,
-  pre_deploy:2, compose_up:2, post_deploy:2,
-  health:3
-};
-const _BAR_LABELS = ['Clone','Build','Deploy','验证','完成'];
-
-function updateStepsBar(id, step, phase) {
-  const bar = document.getElementById('steps-' + id);
-  if (!bar) return;
-  const items = bar.querySelectorAll('.step-item');
-  const idx = (step in _STEP_IDX) ? _STEP_IDX[step] : -1;
-  items.forEach((el, i) => {
-    const dot = el.querySelector('.step-dot');
-    el.className = 'step-item';
-    if (phase === 'done') {
-      el.classList.add('done'); dot.textContent = '✓';
-    } else if (phase === 'error') {
-      if (i < idx)      { el.classList.add('done');    dot.textContent = '✓'; }
-      else if (i === idx){ el.classList.add('error');  dot.textContent = '✗'; }
-      else               { el.classList.add('pending'); dot.textContent = ''; }
-    } else if (idx < 0) {
-      el.classList.add('pending'); dot.textContent = '';
-    } else {
-      if (i < idx)      { el.classList.add('done');   dot.textContent = '✓'; }
-      else if (i === idx){ el.classList.add('active'); dot.textContent = ''; }
-      else               { el.classList.add('pending'); dot.textContent = ''; }
-    }
-  });
-}
-
-function relTime(ts) {
-  const d = Math.floor(Date.now()/1000 - ts);
-  if (d < 60)    return d + '秒前';
-  if (d < 3600)  return Math.floor(d/60) + '分钟前';
-  if (d < 86400) return Math.floor(d/3600) + '小时前';
-  return Math.floor(d/86400) + '天前';
-}
-function updateTimes() {
-  document.querySelectorAll('.rt[data-ts]').forEach(el => el.textContent = relTime(+el.dataset.ts));
-}
-updateTimes();
-setInterval(updateTimes, 5000);
-
-function openAddModal() {
-  document.getElementById('add-modal').style.display = '';
-  setTimeout(() => { const f = document.getElementById('add-modal').querySelector('input'); if(f) f.focus(); }, 50);
-}
-function closeAddModal() {
-  document.getElementById('add-modal').style.display = 'none';
-}
-
-function selectProject(id) {
-  document.querySelectorAll('.proj-item').forEach(el => el.classList.remove('selected'));
-  const item = document.getElementById('item-' + id);
-  if (item) item.classList.add('selected');
-  document.querySelectorAll('.proj-detail').forEach(el => el.style.display = 'none');
-  const detail = document.getElementById('proj-' + id);
-  if (detail) detail.style.display = '';
-  const emp = document.getElementById('detail-empty');
-  if (emp) emp.style.display = 'none';
-}
-
-async function submitAddForm(event) {
-  event.preventDefault();
-  const fd = new FormData(event.target);
-  const data = Object.fromEntries(fd.entries());
-  data.self_service = fd.has('self_service');
-  const r = await fetch('/deploy/projects', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(data),
-  });
-  if (r.ok) {
-    location.reload();
-  } else {
-    const e = await r.json();
-    alert('添加失败: ' + (e.detail || '未知错误'));
-  }
-}
-
-async function deleteProject(id) {
-  if (!confirm('确认删除此工程？')) return;
-  const r = await fetch('/deploy/projects/' + id, {method: 'DELETE'});
-  if (r.ok) {
-    const item = document.getElementById('item-' + id);
-    if (item) item.remove();
-    const detail = document.getElementById('proj-' + id);
-    if (detail) detail.remove();
-    const list = document.getElementById('proj-list');
-    if (list && !list.querySelector('.proj-item')) {
-      list.innerHTML = '<div class="sidebar-empty">还没有工程</div>';
-    }
-    document.querySelectorAll('.proj-detail').forEach(el => el.style.display = 'none');
-    const emp = document.getElementById('detail-empty');
-    if (emp) emp.style.display = '';
-  }
-}
-
-async function triggerDeploy(id, btn) {
-  if (!confirm('确认触发部署？\ngit clone → build → docker compose up')) return;
-  btn.disabled = true;
-  btn.textContent = '部署中…';
-  const rb = document.getElementById('rollback-btn-' + id);
-  if (rb) rb.disabled = true;
-  const logbox = document.getElementById('logbox-' + id);
-  if (logbox) logbox.textContent = '';
-  const r = await fetch('/deploy/projects/' + id + '/trigger', {method: 'POST'});
-  if (r.status === 409) {
-    alert('该工程已有部署任务在执行中');
-    btn.disabled = false;
-    btn.textContent = '部署';
-    if (rb) rb.disabled = false;
-    return;
-  }
-  connectSSE(id);
-}
-
-async function triggerRollback(id, btn) {
-  if (!confirm('确认回滚？将恢复上次成功部署的镜像版本。')) return;
-  const depBtn = document.getElementById('deploy-btn-' + id);
-  if (depBtn) depBtn.disabled = true;
-  btn.disabled = true;
-  btn.textContent = '回滚中…';
-  const logbox = document.getElementById('logbox-' + id);
-  if (logbox) logbox.textContent = '';
-  const r = await fetch('/deploy/projects/' + id + '/rollback', {method: 'POST'});
-  if (!r.ok) {
-    const e = await r.json().catch(() => ({}));
-    alert('回滚失败: ' + (e.detail || r.status));
-    btn.disabled = false;
-    btn.textContent = '回滚';
-    if (depBtn) { depBtn.disabled = false; depBtn.textContent = '部署'; }
-    return;
-  }
-  connectSSE(id);
-}
-
-const _sse = {};
-const _watchTimers = {};
-function connectSSE(id) {
-  if (_sse[id]) { _sse[id].close(); delete _sse[id]; }
-  const es = new EventSource('/deploy/projects/' + id + '/stream');
-  _sse[id] = es;
-  const logbox = document.getElementById('logbox-' + id);
-  es.onmessage = e => {
-    if (e.data === '__done__') {
-      es.close(); delete _sse[id];
-      pollStatus(id);
-      return;
-    }
-    if (e.data.startsWith('__step:')) {
-      const step = e.data.slice(7, -2);
-      updateStepsBar(id, step, 'running');
-      return;
-    }
-    if (logbox) {
-      logbox.textContent += (logbox.textContent ? '\n' : '') + e.data;
-      logbox.scrollTop = logbox.scrollHeight;
-    }
-  };
-  es.onerror = async () => {
-    es.close(); delete _sse[id];
-    try {
-      const d = await pollStatus(id);
-      const busy = d && ['pulling','building','restarting'].includes(d.phase);
-      if (busy) {
-        setTimeout(() => connectSSE(id), 1500);
-      }
-    } catch(e) {}
-  };
-}
-
-const _phaseLabels = {idle:'IDLE',pulling:'拉取中…',building:'构建中…',restarting:'重启中…',done:'完成',error:'失败'};
-const _phaseColors = {idle:'#94a3b8',pulling:'#f59e0b',building:'#3b82f6',restarting:'#8b5cf6',done:'#22c55e',error:'#dc2626'};
-function _dockerColor(s) {
-  if (!s || s === '—') return '#94a3b8';
-  if (s.startsWith('Up')) return '#22c55e';
-  if (s.startsWith('Exited')) return '#64748b';
-  if (s.startsWith('Restarting')) return '#f59e0b';
-  return '#94a3b8';
-}
-
-async function saveSetting(event, key) {
-  event.preventDefault();
-  const form = event.target;
-  const fd = new FormData(form);
-  const value = fd.get('value') || '';
-  const isPassword = form.querySelector('input[type="password"]') !== null;
-  if (isPassword && value === '') return;
-  const body = new FormData();
-  body.append('key', key);
-  body.append('value', value);
-  const r = await fetch('/config/update', {method: 'POST', body});
-  if (r.ok) {
-    const saved = form.querySelector('.setting-saved');
-    if (saved) { saved.style.display = 'inline'; setTimeout(() => saved.style.display = 'none', 2000); }
-  }
-}
-
-function onProjectTypeChange(sel) {
-  const form = sel.closest('form');
-  const isFe = sel.value === 'frontend';
-  const isJava = sel.value === 'java';
-  form.querySelectorAll('[data-docker-only]').forEach(el => el.style.display = isFe ? 'none' : '');
-  form.querySelectorAll('[data-frontend-only]').forEach(el => el.style.display = isFe ? '' : 'none');
-  form.querySelectorAll('[data-java-only]').forEach(el => el.style.display = isJava ? '' : 'none');
-}
-
-function editProject(id) {
-  const card = document.getElementById('proj-' + id);
-  const p = JSON.parse(card.dataset.project);
-  document.getElementById('edit-id').value = p.id;
-  document.getElementById('edit-name').value = p.name || '';
-  document.getElementById('edit-repo-url').value = p.repo_url || '';
-  document.getElementById('edit-github-token').value = '';
-  document.getElementById('edit-service-name').value = p.service_name || '';
-  document.getElementById('edit-image-name').value = p.image_name || '';
-  document.getElementById('edit-compose-file').value = p.compose_file || '';
-  document.getElementById('edit-self-service').checked = !!p.self_service;
-  const ptSel = document.getElementById('edit-project-type');
-  ptSel.value = p.project_type || '';
-  document.getElementById('edit-build-command').value = p.build_command || '';
-  document.getElementById('edit-app-dir').value = p.app_dir || '';
-  document.getElementById('edit-dist-dir').value = p.dist_dir || '';
-  document.getElementById('edit-nginx-container').value = p.nginx_container || '';
-  document.getElementById('edit-deploy-target-dir').value = p.deploy_target_dir || '';
-  document.getElementById('edit-node-version').value = p.node_version || '';
-  document.getElementById('edit-java-version').value = p.java_version || '';
-  onProjectTypeChange(ptSel);
-  document.getElementById('edit-modal').style.display = '';
-}
-
-function closeEditModal() {
-  document.getElementById('edit-modal').style.display = 'none';
-}
-
-async function submitEditForm(event) {
-  event.preventDefault();
-  const fd = new FormData(event.target);
-  const id = fd.get('_id');
-  const data = Object.fromEntries(fd.entries());
-  delete data._id;
-  data.self_service = fd.has('self_service');
-  const r = await fetch('/deploy/projects/' + id, {
-    method: 'PUT',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(data),
-  });
-  if (r.ok) {
-    location.reload();
-  } else {
-    const e = await r.json();
-    alert('保存失败: ' + (e.detail || '未知错误'));
-  }
-}
-
-async function pollStatus(id) {
-  try {
-    const r = await fetch('/deploy/projects/' + id + '/status');
-    const d = await r.json();
-    const detail = document.getElementById('proj-' + id);
-    const p = detail ? JSON.parse(detail.dataset.project) : {};
-    const isFrontend = p.project_type === 'frontend';
-    const badge  = document.getElementById('badge-' + id);
-    const btn    = document.getElementById('deploy-btn-' + id);
-    const rbBtn  = document.getElementById('rollback-btn-' + id);
-    const isStat = document.getElementById('item-status-' + id);
-    const busy   = ['pulling','building','restarting'].includes(d.phase);
-    let c, label;
-    if (busy) {
-      c = _phaseColors[d.phase]; label = _phaseLabels[d.phase];
-      if (rbBtn) rbBtn.disabled = true;
-    } else if (isFrontend) {
-      if (d.phase === 'done' || d.last_phase === 'done')      { c = '#22c55e'; label = '已发布'; }
-      else if (d.phase === 'error' || d.last_phase === 'error'){ c = '#dc2626'; label = '发布失败'; }
-      else                                                     { c = '#94a3b8'; label = '待发布'; }
-      if (btn) { btn.disabled = false; btn.textContent = '部署'; }
-      if (rbBtn) { rbBtn.disabled = false; rbBtn.textContent = '回滚'; }
-    } else {
-      const s = d.docker_status || '—';
-      c = _dockerColor(s); label = s;
-      if (btn) { btn.disabled = false; btn.textContent = '部署'; }
-      if (rbBtn) { rbBtn.disabled = false; rbBtn.textContent = '回滚'; }
-    }
-    if (badge) { badge.textContent = label; badge.style.color = c; badge.style.background = c + '18'; }
-    if (isStat) { isStat.textContent = label; isStat.style.color = c; isStat.style.background = c + '18'; }
-    if (d.step !== undefined) updateStepsBar(id, d.step, d.phase);
-    if (d.finished_at) {
-      const ts = Math.floor(new Date(d.finished_at).getTime() / 1000);
-      const ok  = d.phase === 'done';
-      const action = isFrontend ? '发布' : '部署';
-      const ldEl = document.getElementById('last-deploy-' + id);
-      if (ldEl) {
-        const rc2 = ok ? '#22c55e' : '#dc2626';
-        const rv  = ok ? `✓\u00a0${action}成功` : `✗\u00a0${action}失败`;
-        ldEl.innerHTML = `<span class="rt" data-ts="${ts}">—</span>\u00a0<span style="color:${rc2};font-weight:600">${rv}</span>`;
-      }
-      const metaEl = document.getElementById('item-meta-' + id);
-      if (metaEl) {
-        const sym = ok ? '✓' : '✗';
-        metaEl.innerHTML = `<span class="rt" data-ts="${ts}">—</span> ${sym}`;
-      }
-      updateTimes();
-    }
-    return d;
-  } catch(e) {}
-  return null;
-}
-
-async function initProject(id) {
-  const logbox = document.getElementById('logbox-' + id);
-  if (logbox && !logbox.textContent.trim()) {
-    try {
-      const r = await fetch('/deploy/projects/' + id + '/logs');
-      const text = await r.text();
-      if (text.trim()) {
-        logbox.textContent = text.trimEnd();
-        logbox.scrollTop = logbox.scrollHeight;
-      }
-    } catch(e) {}
-  }
-  await pollStatus(id);
-  if (_watchTimers[id]) clearInterval(_watchTimers[id]);
-  _watchTimers[id] = setInterval(async () => {
-    const d = await pollStatus(id);
-    const busy = d && ['pulling','building','restarting'].includes(d.phase);
-    if (busy && !_sse[id]) connectSSE(id);
-  }, 3000);
-}
-"""
 
 
 # 步骤索引映射（与 JS _STEP_IDX 保持一致）
@@ -1202,407 +739,77 @@ def _last_info_html(p: dict, ps) -> str:
     return "—"
 
 
-def _sidebar_item(p: dict) -> str:
-    """左侧工程列表项。
-    Left sidebar project item.
+def _enrich_project(p: dict) -> dict:
+    """为模板渲染预计算工程附加属性。
+    Pre-compute extra attributes on project dict for template rendering.
     """
     pid = p["id"]
     ps = state.deploy.get_project(pid)
-    busy = ps.phase in ("pulling", "building", "restarting")
 
-    is_frontend = p.get("project_type") == "frontend"
-    if busy:
-        s_label, s_color = _PHASE_LABELS[ps.phase]
-    elif is_frontend:
-        if ps.phase == "done" or p.get("last_phase") == "done":
-            s_label, s_color = "已发布", "#22c55e"
-        elif ps.phase == "error" or p.get("last_phase") == "error":
-            s_label, s_color = "发布失败", "#dc2626"
-        else:
-            s_label, s_color = "待发布", "#94a3b8"
-    else:
-        s_label, s_color = "—", "#94a3b8"
+    # JSON 数据（排除 token）/ JSON data (exclude token)
+    p["_json"] = json.dumps(
+        {k: v for k, v in p.items() if k != "github_token" and not k.startswith("_")},
+        ensure_ascii=False,
+    ).replace("'", "&#39;")
 
-    meta = ""
-    if ps.finished_at:
-        ts = int(ps.finished_at.timestamp())
-        sym = "✓" if ps.phase == "done" else "✗"
-        meta = f'<span class="rt" data-ts="{ts}">—</span> {sym}'
-    elif p.get("last_finished_at"):
-        try:
-            ft = datetime.fromisoformat(p["last_finished_at"])
-            ts = int(ft.timestamp())
-            sym = "✓" if p.get("last_phase") == "done" else "✗"
-            meta = f'<span class="rt" data-ts="{ts}">—</span> {sym}'
-        except Exception:
-            pass
-    if not meta:
-        meta = "尚未发布" if is_frontend else "尚未部署"
+    # 最后部署信息 HTML / Last deploy info HTML
+    p["_last_info"] = _last_info_html(p, ps)
 
-    proj_type = p.get("project_type") or "generic"
-    type_label = {"frontend": "前端", "python": "Python", "java": "Java", "generic": "通用"}.get(proj_type, "通用")
+    # 进度条 HTML / Steps bar HTML
+    p["_steps_bar"] = _render_steps_bar(pid, ps)
 
-    return (
-        f'<div class="proj-item" id="item-{pid}" onclick="selectProject(\'{pid}\')">'
-        f'<div class="item-row1">'
-        f'<span class="item-name">{p["name"]}</span>'
-        f'<span class="item-status" id="item-status-{pid}" '
-        f'style="background:{s_color}18;color:{s_color}">{s_label}</span>'
-        f'</div>'
-        f'<div class="item-row2">'
-        f'<span class="item-kv">类型: {type_label}</span>'
-        f'<span class="item-kv">服务: {p["service_name"]}</span>'
-        f'</div>'
-        f'<div class="item-meta" id="item-meta-{pid}">{meta}</div>'
-        f'</div>'
-    )
-
-
-def _project_detail(p: dict) -> str:
-    """右侧工程详情面板。
-    Right-side project detail panel.
-    """
-    pid = p["id"]
-    ps = state.deploy.get_project(pid)
-    busy = ps.phase in ("pulling", "building", "restarting")
-
-    is_frontend = p.get("project_type") == "frontend"
-    if busy:
-        init_label, init_color = _PHASE_LABELS[ps.phase]
-    elif is_frontend:
-        if ps.phase == "done" or p.get("last_phase") == "done":
-            init_label, init_color = "已发布", "#22c55e"
-        elif ps.phase == "error" or p.get("last_phase") == "error":
-            init_label, init_color = "发布失败", "#dc2626"
-        else:
-            init_label, init_color = "待发布", "#94a3b8"
-    else:
-        init_label, init_color = "—", "#94a3b8"
-
-    last_info = _last_info_html(p, ps)
-    last_label = "上次发布" if is_frontend else "最后部署"
-    repo_url = p["repo_url"]
-    compose = p.get("compose_file") or settings.DEPLOY_COMPOSE_FILE or "（全局默认）"
-
+    # 日志内容 / Log content
     if ps.logs:
-        log_content = "\n".join(ps.logs)
+        p["_log_content"] = "\n".join(ps.logs)
     else:
         lf = _log_file(pid)
-        log_content = lf.read_text(encoding="utf-8").rstrip() if lf.exists() else ""
+        p["_log_content"] = lf.read_text(encoding="utf-8").rstrip() if lf.exists() else ""
 
-    p_json = json.dumps({k: v for k, v in p.items() if k != "github_token"}, ensure_ascii=False).replace("'", "&#39;")
-    return f"""<div class="proj-detail" id="proj-{pid}" data-project='{p_json}' style="display:none">
-  <div class="detail-h">
-    <span class="detail-name">{p["name"]}</span>
-    <span class="badge" id="badge-{pid}" style="background:{init_color}18;color:{init_color}">{init_label}</span>
-    <div class="proj-actions">
-      <button class="act-btn act-btn-primary" id="deploy-btn-{pid}"
-        onclick="triggerDeploy('{pid}',this)"
-        {'disabled' if busy else ''}>{'部署中…' if busy else '部署'}</button>
-      <button class="act-btn" id="rollback-btn-{pid}"
-        onclick="triggerRollback('{pid}',this)"
-        title="恢复上次成功版本"
-        {'disabled' if busy else ''}>回滚</button>
-      <button class="act-btn" onclick="editProject('{pid}')">编辑</button>
-      <button class="act-btn act-btn-danger" onclick="deleteProject('{pid}')">删除</button>
-    </div>
-  </div>
-  <div class="card-b proj-meta">
-    <div class="meta-row"><span class="ml">仓库</span><span class="mv" title="{repo_url}">{repo_url}</span></div>
-    <div class="meta-row"><span class="ml">服务</span><span class="mv">{p["service_name"]}</span></div>
-    <div class="meta-row"><span class="ml">Compose</span><span class="mv mv-mono" title="{compose}">{compose}</span></div>
-    <div class="meta-row"><span class="ml">{last_label}</span><span class="mv" id="last-deploy-{pid}">{last_info}</span></div>
-  </div>
-  {_render_steps_bar(pid, ps)}
-  <div class="log-wrap" id="logwrap-{pid}">
-    <div class="log-box" id="logbox-{pid}">{log_content}</div>
-  </div>
-</div>"""
+    # last_finished_at 时间戳（供模板使用）/ Timestamp for template
+    if p.get("last_finished_at"):
+        try:
+            p["last_finished_at_ts"] = int(datetime.fromisoformat(p["last_finished_at"]).timestamp())
+        except Exception:
+            p["last_finished_at_ts"] = 0
+
+    return p
 
 
 @deploy_router.get("/", response_class=HTMLResponse)
 async def deploy_page():
-    """部署管理页面。
-    Deploy management page.
+    """部署管理页面（Jinja2 模板渲染）。
+    Deploy management page (Jinja2 template rendering).
     """
     projects = load_deploy_projects()
-    sidebar_items = "".join(_sidebar_item(p) for p in projects)
-    detail_panels = "".join(_project_detail(p) for p in projects)
     busy_ids = set(pid for pid, t in _tasks.items() if not t.done())
+
+    # 为每个工程预计算模板所需属性 / Pre-compute template attributes
+    for p in projects:
+        _enrich_project(p)
+
+    # 构建部署状态字典（模板中通过 deploy_states[pid] 访问）
+    # Build deploy states dict (accessed via deploy_states[pid] in templates)
+    deploy_states = {p["id"]: state.deploy.get_project(p["id"]) for p in projects}
+
+    # 初始化脚本 / Initialization scripts
     proj_init_js = "\n".join(
         f"connectSSE('{p['id']}');" if p["id"] in busy_ids else f"initProject('{p['id']}');"
         for p in projects
     )
     auto_select_js = f"selectProject('{projects[0]['id']}');" if projects else ""
-    sidebar_content = sidebar_items if projects else '<div class="sidebar-empty">还没有工程</div>'
 
-    return f"""<!DOCTYPE html>
-<html lang="zh">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mini Deploy</title>
-<style>{_CSS}</style>
-</head>
-<body>
-<nav>
-  <span class="nav-title" style="color:#fff;font-weight:700">Mini Deploy</span>
-  <button class="spec-nav-btn" onclick="document.getElementById('spec-modal').style.display=''">接入规范</button>
-</nav>
-<div class="page">
-
-  <!-- 全局配置 / Global settings -->
-  <details class="card" style="margin-bottom:1rem">
-    <summary>全局配置</summary>
-    <div class="card-b">
-      <div class="setting-row">
-        <span class="setting-label">GitHub Token</span>
-        <form class="setting-form" onsubmit="saveSetting(event,'DEPLOY_GITHUB_TOKEN')">
-          <input type="password" name="value" placeholder="{'已设置' if settings.DEPLOY_GITHUB_TOKEN else '未设置'}（留空不修改）">
-          <button type="submit" class="setting-save-btn">保存</button>
-          <span class="setting-saved">已保存 ✓</span>
-        </form>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">默认 Compose</span>
-        <form class="setting-form" onsubmit="saveSetting(event,'DEPLOY_COMPOSE_FILE')">
-          <input type="text" name="value" value="{settings.DEPLOY_COMPOSE_FILE}">
-          <button type="submit" class="setting-save-btn">保存</button>
-          <span class="setting-saved">已保存 ✓</span>
-        </form>
-      </div>
-    </div>
-  </details>
-
-  <!-- 左右布局 / Left-right layout -->
-  <div class="deploy-layout">
-    <div class="proj-sidebar">
-      <div class="sidebar-h">
-        <span class="sidebar-title">工程列表</span>
-        <button class="sidebar-add" onclick="openAddModal()" title="添加工程">+</button>
-      </div>
-      <div id="proj-list" class="proj-list">{sidebar_content}</div>
-    </div>
-
-    <div class="proj-detail-wrap">
-      <div class="detail-empty" id="detail-empty">← 选择左侧工程查看详情</div>
-      {detail_panels}
-    </div>
-  </div>
-
-</div>
-
-<!-- 接入规范弹窗 / Spec modal -->
-<div id="spec-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal-card spec-modal-card">
-    <div class="modal-h">
-      <h2>项目接入规范</h2>
-      <button class="modal-close" onclick="document.getElementById('spec-modal').style.display='none'">×</button>
-    </div>
-    <div class="card-b">
-      {_SPEC_HTML}
-    </div>
-  </div>
-</div>
-
-<!-- 添加工程弹窗 / Add project modal -->
-<div id="add-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeAddModal()">
-  <div class="modal-card">
-    <div class="modal-h">
-      <h2>添加工程</h2>
-      <button class="modal-close" onclick="closeAddModal()">×</button>
-    </div>
-    <div class="card-b">
-      <form onsubmit="submitAddForm(event)">
-        <div class="form-grid">
-          <div class="form-row">
-            <label>工程名称 *</label>
-            <input name="name" required placeholder="My Project">
-          </div>
-          <div class="form-row">
-            <label>服务名 *</label>
-            <input name="service_name" required placeholder="my-service">
-            <span class="form-hint">docker-compose 中的服务名</span>
-          </div>
-          <div class="form-row form-full">
-            <label>仓库地址 *</label>
-            <input name="repo_url" required placeholder="https://github.com/user/repo.git">
-          </div>
-          <div class="form-row">
-            <label>GitHub Token</label>
-            <input name="github_token" type="password" placeholder="留空则使用全局 Token">
-          </div>
-          <div class="form-row">
-            <label>工程类型</label>
-            <select name="project_type" onchange="onProjectTypeChange(this)">
-              <option value="">通用</option>
-              <option value="python">Python</option>
-              <option value="java">Java</option>
-              <option value="frontend">前端</option>
-            </select>
-            <span class="form-hint">Python: base stage 缓存; Java: Maven/Gradle 构建; 前端: npm → nginx</span>
-          </div>
-          <div class="form-row" data-docker-only>
-            <label>镜像名</label>
-            <input name="image_name" placeholder="myapp:latest">
-            <span class="form-hint">留空则用「服务名:latest」</span>
-          </div>
-          <div class="form-row form-full" data-docker-only>
-            <label>Compose 路径</label>
-            <input name="compose_file" placeholder="/pi-cluster/docker-compose.yml">
-            <span class="form-hint">留空使用全局默认配置</span>
-          </div>
-          <div class="form-row form-full" data-docker-only>
-            <label class="checkbox-label">
-              <input type="checkbox" name="self_service">
-              <span>自重启服务（当前工程部署自身，step 3 通过独立容器执行）</span>
-            </label>
-          </div>
-          <div class="form-row" data-docker-only>
-            <label>自定义构建命令</label>
-            <input name="build_command" placeholder="留空使用默认">
-            <span class="form-hint">Java: 默认 mvn/gradle; 前端: 默认 npm run build</span>
-          </div>
-          <div class="form-row" data-java-only style="display:none">
-            <label>Java 版本</label>
-            <input name="java_version" placeholder="17">
-            <span class="form-hint">Maven/Gradle 镜像的 Java 版本，留空默认 17</span>
-          </div>
-          <div class="form-row form-full" data-frontend-only style="display:none">
-            <label>构建命令</label>
-            <input name="build_command" placeholder="npm run build">
-            <span class="form-hint">留空使用默认：npm run build</span>
-          </div>
-          <div class="form-row" data-frontend-only style="display:none">
-            <label>前端代码子目录</label>
-            <input name="app_dir" placeholder="frontend">
-            <span class="form-hint">package.json 所在子目录（相对仓库根），留空表示根目录</span>
-          </div>
-          <div class="form-row" data-frontend-only style="display:none">
-            <label>产物目录</label>
-            <input name="dist_dir" placeholder="dist">
-            <span class="form-hint">构建输出目录，相对于仓库根目录，留空默认 dist</span>
-          </div>
-          <div class="form-row" data-frontend-only style="display:none">
-            <label>Node 版本</label>
-            <input name="node_version" placeholder="lts">
-            <span class="form-hint">node 镜像版本，留空默认 lts</span>
-          </div>
-          <div class="form-row" data-frontend-only style="display:none">
-            <label>nginx 容器名</label>
-            <input name="nginx_container" placeholder="nginx">
-            <span class="form-hint">留空则直接写宿主机目录；填写则用 docker cp 推入容器</span>
-          </div>
-          <div class="form-row" data-frontend-only style="display:none">
-            <label>目标路径 *</label>
-            <input name="deploy_target_dir" placeholder="/usr/share/nginx/html">
-            <span class="form-hint">容器内路径（docker cp 模式）或宿主机挂载目录</span>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="primary-btn">保存</button>
-            <button type="button" class="cancel-btn" onclick="closeAddModal()">取消</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- 编辑工程弹窗 / Edit project modal -->
-<div id="edit-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeEditModal()">
-  <div class="modal-card">
-    <div class="modal-h">
-      <h2>编辑工程</h2>
-      <button class="modal-close" onclick="closeEditModal()">×</button>
-    </div>
-    <div class="card-b">
-      <form onsubmit="submitEditForm(event)">
-        <input type="hidden" name="_id" id="edit-id">
-        <div class="form-grid">
-          <div class="form-row">
-            <label>工程名称 *</label>
-            <input id="edit-name" name="name" required>
-          </div>
-          <div class="form-row">
-            <label>服务名 *</label>
-            <input id="edit-service-name" name="service_name" required>
-          </div>
-          <div class="form-row form-full">
-            <label>仓库地址 *</label>
-            <input id="edit-repo-url" name="repo_url" required>
-          </div>
-          <div class="form-row">
-            <label>GitHub Token</label>
-            <input id="edit-github-token" name="github_token" type="password" placeholder="留空：私有项目保持原 Token，其余使用全局 Token">
-          </div>
-          <div class="form-row">
-            <label>工程类型</label>
-            <select id="edit-project-type" name="project_type" onchange="onProjectTypeChange(this)">
-              <option value="">通用</option>
-              <option value="python">Python</option>
-              <option value="java">Java</option>
-              <option value="frontend">前端</option>
-            </select>
-          </div>
-          <div class="form-row" data-docker-only>
-            <label>镜像名</label>
-            <input id="edit-image-name" name="image_name" placeholder="myapp:latest">
-          </div>
-          <div class="form-row form-full" data-docker-only>
-            <label>Compose 路径</label>
-            <input id="edit-compose-file" name="compose_file" placeholder="/pi-cluster/docker-compose.yml">
-          </div>
-          <div class="form-row form-full" data-docker-only>
-            <label class="checkbox-label">
-              <input type="checkbox" id="edit-self-service" name="self_service">
-              <span>自重启服务</span>
-            </label>
-          </div>
-          <div class="form-row" data-docker-only>
-            <label>自定义构建命令</label>
-            <input id="edit-build-command" name="build_command" placeholder="留空使用默认">
-          </div>
-          <div class="form-row" data-java-only>
-            <label>Java 版本</label>
-            <input id="edit-java-version" name="java_version" placeholder="17">
-          </div>
-          <div class="form-row" data-frontend-only>
-            <label>前端代码子目录</label>
-            <input id="edit-app-dir" name="app_dir" placeholder="frontend">
-          </div>
-          <div class="form-row" data-frontend-only>
-            <label>产物目录</label>
-            <input id="edit-dist-dir" name="dist_dir" placeholder="dist">
-          </div>
-          <div class="form-row" data-frontend-only>
-            <label>Node 版本</label>
-            <input id="edit-node-version" name="node_version" placeholder="lts">
-          </div>
-          <div class="form-row" data-frontend-only>
-            <label>nginx 容器名</label>
-            <input id="edit-nginx-container" name="nginx_container" placeholder="nginx">
-          </div>
-          <div class="form-row" data-frontend-only>
-            <label>目标路径</label>
-            <input id="edit-deploy-target-dir" name="deploy_target_dir" placeholder="/usr/share/nginx/html">
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="primary-btn">保存</button>
-            <button type="button" class="cancel-btn" onclick="closeEditModal()">取消</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<script>
-{_JS}
-{proj_init_js}
-{auto_select_js}
-</script>
-</body>
-</html>"""
+    tmpl = _templates.get_template("deploy.html")
+    return tmpl.render(
+        projects=projects,
+        deploy_states=deploy_states,
+        phase_labels=_PHASE_LABELS,
+        default_compose=settings.DEPLOY_COMPOSE_FILE,
+        github_token_set=bool(settings.DEPLOY_GITHUB_TOKEN),
+        compose_file=settings.DEPLOY_COMPOSE_FILE,
+        spec_html=_SPEC_HTML,
+        proj_init_js=proj_init_js,
+        auto_select_js=auto_select_js,
+    )
 
 
 # ── REST API ──────────────────────────────────────────────────────────────────

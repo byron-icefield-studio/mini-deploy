@@ -1,0 +1,199 @@
+{# 部署管理主页面 / Deploy management main page #}
+{% extends "base.html" %}
+
+{% block title %}Mini Deploy{% endblock %}
+
+{% block nav_content %}
+  <span class="nav-title" style="color:#fff;font-weight:700">Mini Deploy</span>
+  <button class="spec-nav-btn" onclick="document.getElementById('spec-modal').style.display=''">接入规范</button>
+{% endblock %}
+
+{% block extra_css %}
+.nav-title{color:#94a3b8;font-size:.85rem;flex:1}
+.page{padding:1.25rem 1.5rem;width:100%;max-width:none;min-height:calc(100vh - 54px)}
+.card{background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);border:1px solid #e2e8f0;overflow:hidden;margin-bottom:1rem}
+.card-h{padding:.85rem 1rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.card-h h2{font-size:.9rem;font-weight:600}
+.card-b{padding:1rem}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+.badge{font-size:.72rem;padding:.15rem .5rem;border-radius:20px;font-weight:600;white-space:nowrap}
+.proj-actions{display:flex;gap:.35rem;flex-shrink:0}
+.act-btn{padding:.2rem .6rem;font-size:.74rem;font-weight:600;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:5px;cursor:pointer;white-space:nowrap;transition:all .15s}
+.act-btn:hover{background:#e2e8f0}
+.act-btn:disabled{opacity:.5;cursor:not-allowed}
+.act-btn-primary{background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe}
+.act-btn-primary:hover{background:#bfdbfe}
+.act-btn-danger{background:#fef2f2;color:#dc2626;border-color:#fecaca}
+.act-btn-danger:hover{background:#fee2e2}
+.proj-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.65rem}
+.meta-row{display:flex;flex-direction:column;font-size:.83rem;gap:.25rem;padding:.55rem .65rem;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;min-width:0}
+.ml{color:#94a3b8;flex-shrink:0;font-size:.74rem}
+.mv{color:#334155;font-weight:500;overflow-wrap:anywhere;word-break:break-word;white-space:normal;max-width:none;font-size:.83rem}
+.mv-mono{font-family:monospace;font-size:.78rem}
+.log-wrap{border-top:1px solid #f1f5f9}
+.log-box{background:#0f172a;color:#e2e8f0;padding:.9rem 1rem;font-family:monospace;font-size:.78rem;line-height:1.6;height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
+.form-row{display:flex;flex-direction:column;gap:.25rem}
+.form-row label{font-size:.78rem;font-weight:600;color:#475569}
+.form-row input{padding:.4rem .65rem;border:1px solid #e2e8f0;border-radius:6px;font-size:.84rem;width:100%}
+.form-row input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 2px #bfdbfe50}
+.form-row select{padding:.4rem .65rem;border:1px solid #e2e8f0;border-radius:6px;font-size:.84rem;width:100%;background:#fff;color:#1e293b;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .65rem center}
+.form-row select:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 2px #bfdbfe50}
+.form-hint{font-size:.72rem;color:#94a3b8;margin-top:.1rem}
+.checkbox-label{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#475569;cursor:pointer}
+.checkbox-label input[type=checkbox]{width:15px;height:15px;cursor:pointer}
+.form-full{grid-column:1/-1}
+.form-actions{grid-column:1/-1;display:flex;gap:.5rem;margin-top:.15rem}
+.primary-btn{padding:.4rem 1.2rem;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.84rem;font-weight:500}
+.primary-btn:hover{background:#1d4ed8}
+.cancel-btn{padding:.4rem .9rem;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-size:.84rem}
+details.card summary{list-style:none;padding:.85rem 1rem;font-size:.88rem;font-weight:600;cursor:pointer;user-select:none;color:#475569}
+details.card summary::-webkit-details-marker{display:none}
+details.card summary::after{content:" ↓";font-size:.75rem;color:#94a3b8}
+details[open].card summary::after{content:" ↑";font-size:.75rem}
+.spec-section{margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid #f1f5f9}
+.spec-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.spec-title{font-size:.82rem;font-weight:600;color:#1e293b;margin-bottom:.3rem}
+.spec-title code{background:#f1f5f9;padding:.1rem .35rem;border-radius:4px;font-size:.78rem;color:#6366f1}
+.spec-desc{font-size:.8rem;color:#64748b;margin-bottom:.5rem}
+.spec-code{background:#0f172a;color:#e2e8f0;border-radius:7px;padding:.75rem 1rem;font-family:monospace;font-size:.76rem;line-height:1.6;overflow-x:auto;white-space:pre}
+.spec-tbl{width:100%;border-collapse:collapse;font-size:.8rem}
+.spec-tbl tr{border-bottom:1px solid #f8fafc}
+.spec-tbl tr:last-child{border-bottom:none}
+.spec-tbl td{padding:.35rem .5rem;vertical-align:top}
+.spec-tbl td:first-child code{background:#f1f5f9;padding:.1rem .35rem;border-radius:4px;color:#6366f1;font-size:.78rem;white-space:nowrap}
+.spec-tbl td:last-child{color:#64748b}
+.setting-row{display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid #f8fafc;flex-wrap:wrap}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:.82rem;color:#475569;font-weight:500;width:140px;flex-shrink:0}
+.setting-form{display:flex;align-items:center;gap:.4rem;flex:1;min-width:0}
+.setting-form input{flex:1;min-width:0;padding:.35rem .6rem;border:1px solid #e2e8f0;border-radius:6px;font-size:.83rem}
+.setting-form input:focus{outline:none;border-color:#3b82f6}
+.setting-save-btn{padding:.3rem .75rem;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap;flex-shrink:0}
+.setting-save-btn:hover{background:#1d4ed8}
+.setting-saved{font-size:.75rem;color:#16a34a;display:none}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal-card{background:#fff;border-radius:10px;width:min(620px,92vw);max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-h{padding:.85rem 1rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between}
+.modal-h h2{font-size:.9rem;font-weight:600}
+.modal-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:#94a3b8;padding:.1rem .4rem;border-radius:4px}
+.modal-close:hover{color:#1e293b;background:#f1f5f9}
+.steps-bar{border-top:1px solid #f1f5f9;padding:.45rem .75rem .45rem;display:flex;position:relative}
+.steps-bar::before{content:'';position:absolute;top:calc(.45rem + 8px);left:calc(.75rem + 9px);right:calc(.75rem + 9px);height:2px;background:#e2e8f0;z-index:0}
+.step-item{display:flex;flex-direction:column;align-items:center;flex:1;z-index:1}
+.step-dot{width:18px;height:18px;border-radius:50%;border:2px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:#fff;transition:all .25s}
+.step-item.done .step-dot{background:#22c55e;border-color:#22c55e}
+.step-item.active .step-dot{background:#3b82f6;border-color:#3b82f6;animation:step-pulse 1.2s infinite}
+.step-item.error .step-dot{background:#dc2626;border-color:#dc2626}
+.step-lbl{font-size:.6rem;color:#94a3b8;margin-top:.2rem;text-align:center;white-space:nowrap;line-height:1.2}
+.step-item.done .step-lbl{color:#16a34a}
+.step-item.active .step-lbl{color:#2563eb;font-weight:600}
+.step-item.error .step-lbl{color:#dc2626}
+@keyframes step-pulse{0%,100%{box-shadow:0 0 0 0 #3b82f650}60%{box-shadow:0 0 0 5px #3b82f620}}
+.deploy-layout{display:flex;gap:1rem;align-items:flex-start;width:100%}
+.proj-sidebar{width:clamp(300px,34vw,460px);flex-shrink:0;background:#fff;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden}
+.sidebar-h{padding:.65rem .85rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;background:#f8fafc}
+.sidebar-title{font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
+.sidebar-add{padding:.15rem .5rem;background:#2563eb;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.8rem;font-weight:600;line-height:1.5}
+.sidebar-add:hover{background:#1d4ed8}
+.proj-list{padding:.6rem;display:flex;flex-direction:column;gap:.55rem}
+.proj-item{padding:.65rem .75rem;cursor:pointer;display:flex;flex-direction:column;gap:.35rem;border:1px solid #e2e8f0;border-radius:9px;transition:all .12s;min-width:0;background:#fff}
+.proj-item:hover{background:#f8fafc;border-color:#cbd5e1}
+.proj-item.selected{background:#eff6ff;border-color:#93c5fd;box-shadow:inset 3px 0 0 #3b82f6}
+.item-row1{display:flex;align-items:flex-start;gap:.45rem;width:100%;min-width:0}
+.item-name{flex:1;font-size:.86rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.item-status{font-size:.64rem;font-weight:600;padding:.1rem .38rem;border-radius:10px;white-space:nowrap;flex-shrink:0;max-width:70px;overflow:hidden;text-overflow:ellipsis}
+.item-row2{display:flex;gap:.55rem;flex-wrap:wrap}
+.item-kv{font-size:.72rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;padding:.1rem .35rem;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-meta{font-size:.72rem;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;line-height:1.35}
+.sidebar-empty{padding:1.2rem .85rem;color:#94a3b8;font-size:.8rem;text-align:center}
+.spec-nav-btn{padding:.3rem .65rem;background:transparent;color:#94a3b8;border:1px solid #475569;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap;flex-shrink:0}
+.spec-nav-btn:hover{color:#fff;background:#334155}
+.spec-modal-card{width:min(860px,95vw)}
+.proj-detail-wrap{flex:1;min-width:0}
+.detail-empty{background:#fff;border-radius:10px;border:1px solid #e2e8f0;color:#94a3b8;text-align:center;padding:5rem 1rem;font-size:.88rem}
+.proj-detail{background:#fff;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden}
+.detail-h{padding:.85rem 1rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.detail-name{font-weight:600;font-size:.92rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:980px){
+  nav{padding:.7rem 1rem;flex-wrap:wrap}
+  .page{padding:1rem}
+  .deploy-layout{flex-direction:column}
+  .proj-sidebar{width:100%}
+  .proj-detail-wrap{width:100%}
+}
+@media (max-width:720px){
+  .form-grid{grid-template-columns:1fr}
+  .form-actions{flex-wrap:wrap}
+  .proj-actions{width:100%;justify-content:flex-start;flex-wrap:wrap}
+  .detail-h{align-items:flex-start}
+  .item-name{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+}
+{% endblock %}
+
+{% block content %}
+  {# ── 全局配置 / Global settings ── #}
+  <details class="card" style="margin-bottom:1rem">
+    <summary>全局配置</summary>
+    <div class="card-b">
+      <div class="setting-row">
+        <span class="setting-label">GitHub Token</span>
+        <form class="setting-form" onsubmit="saveSetting(event,'DEPLOY_GITHUB_TOKEN')">
+          <input type="password" name="value" placeholder="{{ '已设置' if github_token_set else '未设置' }}（留空不修改）">
+          <button type="submit" class="setting-save-btn">保存</button>
+          <span class="setting-saved">已保存 ✓</span>
+        </form>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">默认 Compose</span>
+        <form class="setting-form" onsubmit="saveSetting(event,'DEPLOY_COMPOSE_FILE')">
+          <input type="text" name="value" value="{{ compose_file }}">
+          <button type="submit" class="setting-save-btn">保存</button>
+          <span class="setting-saved">已保存 ✓</span>
+        </form>
+      </div>
+    </div>
+  </details>
+
+  {# ── 左右布局 / Left-right layout ── #}
+  <div class="deploy-layout">
+    {# 左侧工程列表 / Left sidebar #}
+    <div class="proj-sidebar">
+      <div class="sidebar-h">
+        <span class="sidebar-title">工程列表</span>
+        <button class="sidebar-add" onclick="openAddModal()" title="添加工程">+</button>
+      </div>
+      <div id="proj-list" class="proj-list">
+        {% if not projects %}
+          <div class="sidebar-empty">还没有工程</div>
+        {% else %}
+          {% for p in projects %}
+            {% include "partials/sidebar_item.html" %}
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    {# 右侧详情面板 / Right detail panel #}
+    <div class="proj-detail-wrap">
+      <div class="detail-empty" id="detail-empty">← 选择左侧工程查看详情</div>
+      {% for p in projects %}
+        {% include "partials/project_detail.html" %}
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block modals %}
+  {% include "partials/spec_modal.html" %}
+  {% include "partials/add_modal.html" %}
+  {% include "partials/edit_modal.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% include "partials/deploy.js" %}
+{{ proj_init_js }}
+{{ auto_select_js }}
+</script>
+{% endblock %}

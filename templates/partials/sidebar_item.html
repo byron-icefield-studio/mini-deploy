@@ -1,0 +1,50 @@
+{# 左侧工程列表项 / Sidebar project item #}
+{% set pid = p.id %}
+{% set ps = deploy_states[pid] %}
+{% set busy = ps.phase in ("pulling", "building", "restarting") %}
+{% set is_frontend = p.project_type == "frontend" %}
+{% set type_map = {"frontend": "前端", "python": "Python", "java": "Java", "generic": "通用"} %}
+{% set type_label = type_map.get(p.project_type or "generic", "通用") %}
+
+{# 状态计算 / Status calculation #}
+{% if busy %}
+  {% set s_label = phase_labels[ps.phase][0] %}
+  {% set s_color = phase_labels[ps.phase][1] %}
+{% elif is_frontend %}
+  {% if ps.phase == "done" or p.get("last_phase") == "done" %}
+    {% set s_label, s_color = "已发布", "#22c55e" %}
+  {% elif ps.phase == "error" or p.get("last_phase") == "error" %}
+    {% set s_label, s_color = "发布失败", "#dc2626" %}
+  {% else %}
+    {% set s_label, s_color = "待发布", "#94a3b8" %}
+  {% endif %}
+{% else %}
+  {% set s_label, s_color = "—", "#94a3b8" %}
+{% endif %}
+
+{# 上次部署摘要 / Last deploy summary #}
+{% set meta = "" %}
+{% if ps.finished_at %}
+  {% set ts = ps.finished_at.timestamp()|int %}
+  {% set sym = "✓" if ps.phase == "done" else "✗" %}
+  {% set meta = '<span class="rt" data-ts="' ~ ts ~ '">—</span> ' ~ sym %}
+{% elif p.get("last_finished_at") %}
+  {% set ts = p.last_finished_at_ts %}
+  {% set sym = "✓" if p.get("last_phase") == "done" else "✗" %}
+  {% set meta = '<span class="rt" data-ts="' ~ ts ~ '">—</span> ' ~ sym %}
+{% endif %}
+{% if not meta %}
+  {% set meta = "尚未发布" if is_frontend else "尚未部署" %}
+{% endif %}
+
+<div class="proj-item" id="item-{{ pid }}" onclick="selectProject('{{ pid }}')">
+  <div class="item-row1">
+    <span class="item-name">{{ p.name }}</span>
+    <span class="item-status" id="item-status-{{ pid }}" style="background:{{ s_color }}18;color:{{ s_color }}">{{ s_label }}</span>
+  </div>
+  <div class="item-row2">
+    <span class="item-kv">类型: {{ type_label }}</span>
+    <span class="item-kv">服务: {{ p.service_name }}</span>
+  </div>
+  <div class="item-meta" id="item-meta-{{ pid }}">{{ meta }}</div>
+</div>

@@ -1,0 +1,53 @@
+{# 右侧工程详情面板 / Right project detail panel #}
+{% set pid = p.id %}
+{% set ps = deploy_states[pid] %}
+{% set busy = ps.phase in ("pulling", "building", "restarting") %}
+{% set is_frontend = p.project_type == "frontend" %}
+
+{# 初始状态 / Initial status #}
+{% if busy %}
+  {% set init_label = phase_labels[ps.phase][0] %}
+  {% set init_color = phase_labels[ps.phase][1] %}
+{% elif is_frontend %}
+  {% if ps.phase == "done" or p.get("last_phase") == "done" %}
+    {% set init_label, init_color = "已发布", "#22c55e" %}
+  {% elif ps.phase == "error" or p.get("last_phase") == "error" %}
+    {% set init_label, init_color = "发布失败", "#dc2626" %}
+  {% else %}
+    {% set init_label, init_color = "待发布", "#94a3b8" %}
+  {% endif %}
+{% else %}
+  {% set init_label, init_color = "—", "#94a3b8" %}
+{% endif %}
+
+{% set last_label = "上次发布" if is_frontend else "最后部署" %}
+{% set compose = p.get("compose_file") or default_compose or "（全局默认）" %}
+
+<div class="proj-detail" id="proj-{{ pid }}" data-project='{{ p._json }}' style="display:none">
+  <div class="detail-h">
+    <span class="detail-name">{{ p.name }}</span>
+    <span class="badge" id="badge-{{ pid }}" style="background:{{ init_color }}18;color:{{ init_color }}">{{ init_label }}</span>
+    <div class="proj-actions">
+      <button class="act-btn act-btn-primary" id="deploy-btn-{{ pid }}"
+        onclick="triggerDeploy('{{ pid }}',this)"
+        {{ "disabled" if busy }}>{{ "部署中…" if busy else "部署" }}</button>
+      <button class="act-btn" id="rollback-btn-{{ pid }}"
+        onclick="triggerRollback('{{ pid }}',this)"
+        title="恢复上次成功版本"
+        {{ "disabled" if busy }}>回滚</button>
+      <button class="act-btn" onclick="editProject('{{ pid }}')">编辑</button>
+      <button class="act-btn act-btn-danger" onclick="deleteProject('{{ pid }}')">删除</button>
+    </div>
+  </div>
+  <div class="card-b proj-meta">
+    <div class="meta-row"><span class="ml">仓库</span><span class="mv" title="{{ p.repo_url }}">{{ p.repo_url }}</span></div>
+    <div class="meta-row"><span class="ml">服务</span><span class="mv">{{ p.service_name }}</span></div>
+    <div class="meta-row"><span class="ml">Compose</span><span class="mv mv-mono" title="{{ compose }}">{{ compose }}</span></div>
+    <div class="meta-row"><span class="ml">{{ last_label }}</span><span class="mv" id="last-deploy-{{ pid }}">{{ p._last_info }}</span></div>
+  </div>
+  {# 进度条 / Steps bar #}
+  {{ p._steps_bar }}
+  <div class="log-wrap" id="logwrap-{{ pid }}">
+    <div class="log-box" id="logbox-{{ pid }}">{{ p._log_content }}</div>
+  </div>
+</div>
