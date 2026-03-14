@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # 部署全局默认值（各工程可在管理页单独覆盖）
     # Global deployment defaults (each project can override in the management page)
     DEPLOY_GITHUB_TOKEN: str = ""
-    DEPLOY_COMPOSE_FILE: str = "/pi-cluster/docker-compose.yml"
+    DEPLOY_COMPOSE_FILE: str = "/container-cluster/docker-compose.yml"
 
     def update(self, key: str, value: str) -> None:
         """运行时更新配置并持久化到 .env。

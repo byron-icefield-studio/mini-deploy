@@ -105,7 +105,7 @@ cd "$INSTALL_DIR"
 
 PORT=9999
 GITHUB_TOKEN=""
-COMPOSE_FILE="/pi-cluster/docker-compose.yml"
+COMPOSE_FILE="/container-cluster/docker-compose.yml"
 LOG_DIR="$INSTALL_DIR/logs"
 DATA_DIR="$INSTALL_DIR/data"
 
@@ -119,8 +119,8 @@ if [ -t 0 ]; then
   read -rp "  GitHub Token（私有仓库必填，可留空）/ GitHub Token [empty]: " input_token
   GITHUB_TOKEN="${input_token:-}"
 
-  read -rp "  默认 docker-compose.yml 路径 / Default compose file [/pi-cluster/docker-compose.yml]: " input_compose
-  COMPOSE_FILE="${input_compose:-/pi-cluster/docker-compose.yml}"
+  read -rp "  默认 docker-compose.yml 路径 / Default compose file [/container-cluster/docker-compose.yml]: " input_compose
+  COMPOSE_FILE="${input_compose:-/container-cluster/docker-compose.yml}"
 
   read -rp "  日志目录 / Log directory [$LOG_DIR]: " input_log
   LOG_DIR="${input_log:-$LOG_DIR}"

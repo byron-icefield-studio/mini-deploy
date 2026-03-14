@@ -83,7 +83,7 @@ uvicorn main:app --host 0.0.0.0 --port 9999 --reload
 |------|--------|------|
 | `LOG_PATH` | `/logs` | 日志存储目录 |
 | `DEPLOY_GITHUB_TOKEN` | 空 | GitHub Personal Access Token（私有仓库必填） |
-| `DEPLOY_COMPOSE_FILE` | `/pi-cluster/docker-compose.yml` | 默认 docker-compose 文件路径 |
+| `DEPLOY_COMPOSE_FILE` | `/container-cluster/docker-compose.yml` | 默认 docker-compose 文件路径 |
 
 ---
 
