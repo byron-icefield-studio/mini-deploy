@@ -17,14 +17,6 @@
 
 ---
 
-## 截图
-
-> Web UI 一览（项目列表、实时日志、进度追踪）
-
-![Web UI](docs/screenshot.png)
-
----
-
 ## 快速安装
 
 > 前提条件：已安装 **Docker** 和 **Docker Compose**
