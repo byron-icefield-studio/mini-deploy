@@ -462,23 +462,28 @@ async def _deploy_pipeline(project_id: str, project: dict):
             else:
                 raise RuntimeError("未找到 Dockerfile（deploy/Dockerfile 或根目录 Dockerfile）")
 
-            # Python 工程：自动检测 requirements.txt 变化，按需重建 base stage
-            # Python projects: auto-rebuild base stage when requirements.txt changes
+            # Python 工程：自动检测 requirements.txt 和 Dockerfile 变化，按需重建 base stage
+            # Python projects: auto-rebuild base stage when requirements.txt or Dockerfile changes
             if project_type == "python":
                 base_image = f"{image_base}-base:latest"
                 req_file = os.path.join(tmp_dir, "requirements.txt")
                 if os.path.isfile(req_file):
-                    req_hash = hashlib.sha256(Path(req_file).read_bytes()).hexdigest()
-                    last_hash = await _get_image_label(base_image, "req_hash")
-                    if req_hash == last_hash:
-                        _broadcast(project_id, f"==> [base] requirements.txt 未变化（{req_hash[:8]}），跳过重建")
+                    # 合并 requirements.txt 和 Dockerfile 内容计算哈希，任意一个变化都重建
+                    # Combine requirements.txt and Dockerfile content for hashing — rebuild if either changes
+                    h = hashlib.sha256()
+                    h.update(Path(req_file).read_bytes())
+                    h.update(Path(dockerfile).read_bytes())
+                    base_hash = h.hexdigest()
+                    last_hash = await _get_image_label(base_image, "base_hash")
+                    if base_hash == last_hash:
+                        _broadcast(project_id, f"==> [base] requirements.txt 和 Dockerfile 均未变化（{base_hash[:8]}），跳过重建")
                     else:
-                        _broadcast(project_id, f"==> [base] requirements.txt 已变化（{last_hash[:8] or 'none'} → {req_hash[:8]}），重建 base stage…")
+                        _broadcast(project_id, f"==> [base] 检测到变化（{last_hash[:8] or 'none'} → {base_hash[:8]}），重建 base stage…")
                         rc = await _run_cmd(
                             project_id,
                             "docker", "build",
                             "--target", "base",
-                            "--label", f"req_hash={req_hash}",
+                            "--label", f"base_hash={base_hash}",
                             "-t", base_image,
                             "-f", dockerfile,
                             tmp_dir,
