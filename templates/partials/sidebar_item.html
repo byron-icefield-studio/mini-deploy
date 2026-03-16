@@ -37,8 +37,15 @@
   {% set meta = "尚未发布" if is_frontend else "尚未部署" %}
 {% endif %}
 
-<div class="proj-item" id="item-{{ pid }}" onclick="selectProject('{{ pid }}')">
+<div class="proj-item" id="item-{{ pid }}" draggable="true"
+  onclick="selectProject('{{ pid }}')"
+  ondragstart="_dragStart(event,'{{ pid }}')"
+  ondragover="_dragOver(event)"
+  ondragleave="_dragLeave(event)"
+  ondrop="_dragDrop(event,'{{ pid }}')"
+  ondragend="_dragEnd(event)">
   <div class="item-row1">
+    <span class="drag-handle" title="拖拽排序" onclick="event.stopPropagation()">⠿</span>
     <span class="item-name">{{ p.name }}</span>
     <span class="item-status" id="item-status-{{ pid }}" style="background:{{ s_color }}18;color:{{ s_color }}">{{ s_label }}</span>
   </div>

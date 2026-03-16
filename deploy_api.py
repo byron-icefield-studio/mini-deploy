@@ -810,7 +810,6 @@ async def deploy_page():
   const saved = localStorage.getItem('selectedProject');
   const target = (saved && ids.includes(saved)) ? saved : '{_first_id}';
   if (target) selectProject(target);
-  sortProjects(localStorage.getItem('projSortKey') || 'default');
 }})();""" if projects else ""
 
     tmpl = _templates.get_template("deploy.html")
@@ -872,6 +871,29 @@ class ProjectUpdate(BaseModel):
     nginx_container: str = ""
     deploy_target_dir: str = ""
     node_version: str = ""
+
+
+class ProjectReorder(BaseModel):
+    """工程排序请求体。
+    Reorder projects request body.
+    """
+    ids: List[str]
+
+
+@deploy_router.post("/projects/reorder")
+async def reorder_projects(body: ProjectReorder):
+    """按拖拽结果重新排列工程顺序并持久化。
+    Reorder projects by drag-and-drop result and persist.
+    """
+    projects = load_deploy_projects()
+    id_map = {p["id"]: p for p in projects}
+    # 按请求顺序重排，忽略不存在的 ID / Reorder by request, ignore unknown IDs
+    reordered = [id_map[i] for i in body.ids if i in id_map]
+    # 追加未出现在请求中的工程（保底）/ Append any projects not in the request
+    seen = set(body.ids)
+    reordered += [p for p in projects if p["id"] not in seen]
+    _save_projects(reordered)
+    return JSONResponse({"ok": True})
 
 
 @deploy_router.post("/projects")

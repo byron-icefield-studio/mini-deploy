@@ -70,28 +70,49 @@ function selectProject(id) {
   localStorage.setItem('selectedProject', id);
 }
 
-// 工程列表排序 / Sort project list
-function sortProjects(key) {
-  localStorage.setItem('projSortKey', key);
+// 拖拽排序 / Drag-and-drop reorder
+let _dragId = null;
+
+function _dragStart(e, id) {
+  _dragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => { const el = document.getElementById('item-' + id); if (el) el.classList.add('dragging'); }, 0);
+}
+function _dragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const item = e.currentTarget;
+  if (item.id !== 'item-' + _dragId) item.classList.add('drag-over');
+}
+function _dragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+function _dragDrop(e, targetId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!_dragId || _dragId === targetId) return;
+  const list = document.getElementById('proj-list');
+  const dragged = document.getElementById('item-' + _dragId);
+  const target  = document.getElementById('item-' + targetId);
+  if (!dragged || !target) return;
+  // 插入到目标前面 / Insert before target
+  list.insertBefore(dragged, target);
+  _saveOrder();
+}
+function _dragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  _dragId = null;
+}
+
+// 将新顺序持久化到服务端 / Persist new order to server
+async function _saveOrder() {
   const list = document.getElementById('proj-list');
   if (!list) return;
-  const items = Array.from(list.querySelectorAll('.proj-item'));
-  items.sort((a, b) => {
-    if (key === 'name') {
-      const na = a.querySelector('.item-name')?.textContent.trim() || '';
-      const nb = b.querySelector('.item-name')?.textContent.trim() || '';
-      return na.localeCompare(nb, 'zh');
-    }
-    if (key === 'time') {
-      const ta = +(a.querySelector('.rt[data-ts]')?.dataset.ts) || 0;
-      const tb = +(b.querySelector('.rt[data-ts]')?.dataset.ts) || 0;
-      return tb - ta; // 最新优先 / newest first
-    }
-    return 0; // default: 保持原始顺序 / keep original order
-  });
-  items.forEach(el => list.appendChild(el));
-  document.querySelectorAll('.sort-btn').forEach(btn => {
-    btn.classList.toggle('sort-btn-active', btn.dataset.sort === key);
+  const ids = Array.from(list.querySelectorAll('.proj-item')).map(el => el.id.replace('item-', ''));
+  await fetch('/projects/reorder', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ids}),
   });
 }
 

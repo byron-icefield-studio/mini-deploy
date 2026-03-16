@@ -96,16 +96,17 @@ details[open].card summary::after{content:" ↑";font-size:.75rem}
 .sidebar-title{font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
 .sidebar-add{padding:.15rem .5rem;background:#2563eb;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.8rem;font-weight:600;line-height:1.5}
 .sidebar-add:hover{background:#1d4ed8}
-.sort-btn{padding:.12rem .42rem;font-size:.72rem;font-weight:500;background:transparent;color:#94a3b8;border:1px solid transparent;border-radius:4px;cursor:pointer;white-space:nowrap;transition:all .12s}
-.sort-btn:hover{color:#475569;background:#f1f5f9}
-.sort-btn-active{color:#2563eb!important;background:#eff6ff!important;border-color:#bfdbfe!important}
 .proj-list{padding:.6rem;display:flex;flex-direction:column;gap:.55rem}
 .proj-item{padding:.65rem .75rem;cursor:pointer;display:flex;flex-direction:column;gap:.35rem;border:1px solid #e2e8f0;border-radius:9px;transition:all .12s;min-width:0;background:#fff}
+.proj-item.dragging{opacity:.4;border-style:dashed}
+.proj-item.drag-over{border-color:#3b82f6;background:#eff6ff;box-shadow:0 2px 8px #3b82f620}
+.drag-handle{color:#cbd5e1;font-size:.9rem;cursor:grab;flex-shrink:0;padding:.05rem .1rem;line-height:1;user-select:none;transition:color .12s}
+.drag-handle:hover{color:#94a3b8}
 .proj-item:hover{background:#f8fafc;border-color:#cbd5e1}
 .proj-item.selected{background:#eff6ff;border-color:#93c5fd;box-shadow:inset 3px 0 0 #3b82f6}
 .item-row1{display:flex;align-items:flex-start;gap:.45rem;width:100%;min-width:0}
 .item-name{flex:1;font-size:.86rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.item-status{font-size:.64rem;font-weight:600;padding:.1rem .38rem;border-radius:10px;white-space:nowrap;flex-shrink:0;max-width:70px;overflow:hidden;text-overflow:ellipsis}
+.item-status{font-size:.64rem;font-weight:600;padding:.1rem .5rem;border-radius:10px;white-space:nowrap;flex-shrink:0;max-width:none}
 .item-row2{display:flex;gap:.55rem;flex-wrap:wrap}
 .item-kv{font-size:.72rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;padding:.1rem .35rem;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .item-meta{font-size:.72rem;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;line-height:1.35}
@@ -164,13 +165,7 @@ details[open].card summary::after{content:" ↑";font-size:.75rem}
     <div class="proj-sidebar">
       <div class="sidebar-h">
         <span class="sidebar-title">工程列表</span>
-        <div style="display:flex;align-items:center;gap:.3rem">
-          {# 排序按钮 / Sort buttons #}
-          <button class="sort-btn" data-sort="default" onclick="sortProjects('default')" title="默认顺序">默认</button>
-          <button class="sort-btn" data-sort="name" onclick="sortProjects('name')" title="按名称排序">名称</button>
-          <button class="sort-btn" data-sort="time" onclick="sortProjects('time')" title="按最近部署排序">最近</button>
-          <button class="sidebar-add" onclick="openAddModal()" title="添加工程">+</button>
-        </div>
+        <button class="sidebar-add" onclick="openAddModal()" title="添加工程">+</button>
       </div>
       <div id="proj-list" class="proj-list">
         {% if not projects %}
