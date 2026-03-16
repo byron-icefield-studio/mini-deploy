@@ -57,7 +57,7 @@ function closeAddModal() {
   document.getElementById('add-modal').style.display = 'none';
 }
 
-// 工程选择 / Project selection
+// 工程选择（持久化到 localStorage）/ Project selection (persisted to localStorage)
 function selectProject(id) {
   document.querySelectorAll('.proj-item').forEach(el => el.classList.remove('selected'));
   const item = document.getElementById('item-' + id);
@@ -67,6 +67,32 @@ function selectProject(id) {
   if (detail) detail.style.display = '';
   const emp = document.getElementById('detail-empty');
   if (emp) emp.style.display = 'none';
+  localStorage.setItem('selectedProject', id);
+}
+
+// 工程列表排序 / Sort project list
+function sortProjects(key) {
+  localStorage.setItem('projSortKey', key);
+  const list = document.getElementById('proj-list');
+  if (!list) return;
+  const items = Array.from(list.querySelectorAll('.proj-item'));
+  items.sort((a, b) => {
+    if (key === 'name') {
+      const na = a.querySelector('.item-name')?.textContent.trim() || '';
+      const nb = b.querySelector('.item-name')?.textContent.trim() || '';
+      return na.localeCompare(nb, 'zh');
+    }
+    if (key === 'time') {
+      const ta = +(a.querySelector('.rt[data-ts]')?.dataset.ts) || 0;
+      const tb = +(b.querySelector('.rt[data-ts]')?.dataset.ts) || 0;
+      return tb - ta; // 最新优先 / newest first
+    }
+    return 0; // default: 保持原始顺序 / keep original order
+  });
+  items.forEach(el => list.appendChild(el));
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.classList.toggle('sort-btn-active', btn.dataset.sort === key);
+  });
 }
 
 // 提交添加表单 / Submit add form

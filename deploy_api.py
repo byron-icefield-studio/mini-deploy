@@ -801,7 +801,17 @@ async def deploy_page():
         f"connectSSE('{p['id']}');" if p["id"] in busy_ids else f"initProject('{p['id']}');"
         for p in projects
     )
-    auto_select_js = f"selectProject('{projects[0]['id']}');" if projects else ""
+    # 恢复上次选中的工程，若不在列表中则选第一个
+    # Restore last selected project; fall back to first if not in list
+    _proj_ids_js = json.dumps([p["id"] for p in projects])
+    _first_id = projects[0]["id"] if projects else ""
+    auto_select_js = f"""(function(){{
+  const ids = {_proj_ids_js};
+  const saved = localStorage.getItem('selectedProject');
+  const target = (saved && ids.includes(saved)) ? saved : '{_first_id}';
+  if (target) selectProject(target);
+  sortProjects(localStorage.getItem('projSortKey') || 'default');
+}})();""" if projects else ""
 
     tmpl = _templates.get_template("deploy.html")
     return tmpl.render(
