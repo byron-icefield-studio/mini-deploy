@@ -40,7 +40,7 @@ curl -fsSL https://raw.githubusercontent.com/byron-icefield-studio/mini-deploy/m
 **1. 生成配置文件（不启动）**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/byronicefield/mini-deploy/main/install.sh | bash -s -- --no-start
+curl -fsSL https://raw.githubusercontent.com/byron-icefield-studio/mini-deploy/main/install.sh | bash -s -- --no-start
 ```
 
 **2. 编辑配置**
@@ -60,7 +60,7 @@ docker compose up -d
 ### 方式二：从源码运行
 
 ```bash
-git clone https://github.com/byronicefield/mini-deploy.git
+git clone https://github.com/byron-icefield-studio/mini-deploy.git
 cd mini-deploy
 
 python3 -m venv .venv
