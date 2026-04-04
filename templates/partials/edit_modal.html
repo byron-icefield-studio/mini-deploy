@@ -33,6 +33,11 @@
               <option value="java">Java</option>
               <option value="frontend">前端</option>
             </select>
+            <span class="form-hint">Python 项目通常无需手动指定依赖方式，平台会按仓库文件自动识别。</span>
+          </div>
+          <div class="form-row" data-python-only style="display:none">
+            <label>Python 依赖方式</label>
+            <div class="form-hint">无需配置，平台会自动识别。识别顺序为：<code>uv.lock</code> → <code>requirements.txt</code> → <code>pyproject.toml</code>。</div>
           </div>
           <div class="form-row" data-docker-only>
             <label>镜像名</label>
@@ -52,29 +57,29 @@
             <label>自定义构建命令</label>
             <input id="edit-build-command" name="build_command">
           </div>
-          <div class="form-row" data-java-only>
+          <div class="form-row" data-java-only style="display:none">
             <label>Java 版本</label>
             <input id="edit-java-version" name="java_version" placeholder="17">
           </div>
-          <div class="form-row" data-frontend-only>
+          <div class="form-row" data-frontend-only style="display:none">
             <label>前端代码子目录</label>
             <input id="edit-app-dir" name="app_dir">
           </div>
-          <div class="form-row" data-frontend-only>
+          <div class="form-row" data-frontend-only style="display:none">
             <label>产物目录</label>
             <input id="edit-dist-dir" name="dist_dir">
           </div>
-          <div class="form-row" data-frontend-only>
+          <div class="form-row" data-frontend-only style="display:none">
             <label>Node 版本</label>
             <input id="edit-node-version" name="node_version">
           </div>
-          <div class="form-row" data-frontend-only>
+          <div class="form-row" data-frontend-only style="display:none">
             <label>nginx 容器名</label>
             <input id="edit-nginx-container" name="nginx_container">
           </div>
-          <div class="form-row" data-frontend-only>
+          <div class="form-row" data-frontend-only style="display:none">
             <label>目标路径</label>
-            <input id="edit-deploy-target-dir" name="deploy_target_dir">
+            <input id="edit-deploy-target-dir" name="deploy_target_dir" data-required-when-visible="true">
           </div>
           <div class="form-actions">
             <button type="submit" class="primary-btn">保存</button>

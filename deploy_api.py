@@ -3,7 +3,7 @@ Deploy management API and Web UI.
 
 支持的工程类型 / Supported project types:
 - 通用 (generic): 标准 Dockerfile 构建
-- Python: 自动 base stage 缓存（requirements.txt hash 检测）
+- Python: 自动 base stage 缓存（支持 pip / uv 依赖清单检测）
 - Java: Maven/Gradle 构建 → Docker 镜像
 - 前端 (frontend): npm build → 静态文件部署到 nginx
 """
@@ -38,6 +38,31 @@ deploy_router = APIRouter()
 # 项目接入规范 HTML，从独立文件加载（避免在代码中维护大段 HTML）
 # Load onboarding spec HTML from a separate file to keep this module clean
 _SPEC_HTML = (Path(__file__).parent / "templates" / "deploy_spec.html").read_text(encoding="utf-8")
+
+
+def _resolve_python_dep_files(tmp_dir: str, project: dict) -> tuple[str, List[Path]]:
+    """解析 Python 工程依赖清单文件。
+    Resolve dependency manifest files for Python projects.
+
+    始终根据仓库文件自动推断：
+    - 有 uv.lock → uv
+    - 否则有 requirements.txt → pip
+    - 否则存在 pyproject.toml → uv
+    """
+    requirements = Path(tmp_dir) / "requirements.txt"
+    pyproject = Path(tmp_dir) / "pyproject.toml"
+    uv_lock = Path(tmp_dir) / "uv.lock"
+
+    if uv_lock.is_file():
+        files = [p for p in (pyproject, uv_lock) if p.is_file()]
+        return "uv", files
+
+    if requirements.is_file():
+        return "pip", [requirements]
+
+    if pyproject.is_file():
+        return "uv", [pyproject]
+    return "pip", []
 
 # ── Project persistence / 工程持久化 ─────────────────────────────────────────
 
@@ -462,23 +487,33 @@ async def _deploy_pipeline(project_id: str, project: dict):
             else:
                 raise RuntimeError("未找到 Dockerfile（deploy/Dockerfile 或根目录 Dockerfile）")
 
-            # Python 工程：自动检测 requirements.txt 和 Dockerfile 变化，按需重建 base stage
-            # Python projects: auto-rebuild base stage when requirements.txt or Dockerfile changes
+            # Python 工程：自动检测依赖清单和 Dockerfile 变化，按需重建 base stage
+            # Python projects: auto-rebuild base stage when dependency manifests or Dockerfile changes
             if project_type == "python":
                 base_image = f"{image_base}-base:latest"
-                req_file = os.path.join(tmp_dir, "requirements.txt")
-                if os.path.isfile(req_file):
-                    # 合并 requirements.txt 和 Dockerfile 内容计算哈希，任意一个变化都重建
-                    # Combine requirements.txt and Dockerfile content for hashing — rebuild if either changes
+                python_pm, dep_files = _resolve_python_dep_files(tmp_dir, project)
+                if dep_files:
+                    # 合并依赖清单和 Dockerfile 内容计算哈希，任意一个变化都重建
+                    # Combine dependency manifests and Dockerfile content for hashing — rebuild if either changes
                     h = hashlib.sha256()
-                    h.update(Path(req_file).read_bytes())
+                    h.update(python_pm.encode("utf-8"))
+                    for dep_file in dep_files:
+                        h.update(str(dep_file.relative_to(tmp_dir)).encode("utf-8"))
+                        h.update(dep_file.read_bytes())
                     h.update(Path(dockerfile).read_bytes())
                     base_hash = h.hexdigest()
                     last_hash = await _get_image_label(base_image, "base_hash")
+                    dep_names = " + ".join(str(p.relative_to(tmp_dir)) for p in dep_files)
                     if base_hash == last_hash:
-                        _broadcast(project_id, f"==> [base] requirements.txt 和 Dockerfile 均未变化（{base_hash[:8]}），跳过重建")
+                        _broadcast(
+                            project_id,
+                            f"==> [base] {python_pm} 依赖清单（{dep_names}）和 Dockerfile 均未变化（{base_hash[:8]}），跳过重建",
+                        )
                     else:
-                        _broadcast(project_id, f"==> [base] 检测到变化（{last_hash[:8] or 'none'} → {base_hash[:8]}），重建 base stage…")
+                        _broadcast(
+                            project_id,
+                            f"==> [base] 检测到 {python_pm} 依赖变化（{last_hash[:8] or 'none'} → {base_hash[:8]}），重建 base stage…",
+                        )
                         rc = await _run_cmd(
                             project_id,
                             "docker", "build",
@@ -492,7 +527,10 @@ async def _deploy_pipeline(project_id: str, project: dict):
                         if rc != 0:
                             raise RuntimeError("base stage 构建失败")
                 else:
-                    _broadcast(project_id, "    （未找到 requirements.txt，跳过 base stage 管理）")
+                    _broadcast(
+                        project_id,
+                        f"    （未找到 {python_pm} 依赖清单，跳过 base stage 管理）",
+                    )
 
             _broadcast_step(project_id, "build")
             _broadcast(project_id, f"==> [2/3] docker build（镜像: {image}，Dockerfile: {os.path.relpath(dockerfile, tmp_dir)}）")
@@ -762,7 +800,6 @@ def _enrich_project(p: dict) -> dict:
 
     # 进度条 HTML / Steps bar HTML
     p["_steps_bar"] = _render_steps_bar(pid, ps)
-
     # 日志内容 / Log content
     if ps.logs:
         p["_log_content"] = "\n".join(ps.logs)
@@ -820,10 +857,18 @@ async def deploy_page():
         default_compose=settings.DEPLOY_COMPOSE_FILE,
         github_token_set=bool(settings.DEPLOY_GITHUB_TOKEN),
         compose_file=settings.DEPLOY_COMPOSE_FILE,
-        spec_html=_SPEC_HTML,
         proj_init_js=proj_init_js,
         auto_select_js=auto_select_js,
     )
+
+
+@deploy_router.get("/deploy-spec", response_class=HTMLResponse)
+async def deploy_spec_page():
+    """独立项目接入规范页面。
+    Standalone onboarding specification page.
+    """
+    tmpl = _templates.get_template("deploy_spec_page.html")
+    return tmpl.render(spec_html=_SPEC_HTML)
 
 
 # ── REST API ──────────────────────────────────────────────────────────────────

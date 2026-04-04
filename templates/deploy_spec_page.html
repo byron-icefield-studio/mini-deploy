@@ -1,0 +1,69 @@
+{# 独立接入规范页 / Standalone onboarding spec page #}
+{% extends "base.html" %}
+
+{% block title %}Mini Deploy 接入规范{% endblock %}
+
+{% block nav_content %}
+  <span class="nav-brand">Mini Deploy</span>
+  <a class="nav-link" href="/">返回控制台</a>
+{% endblock %}
+
+{% block extra_css %}
+body{background:linear-gradient(180deg,#e2e8f0 0%,#f8fafc 220px,#f8fafc 100%)}
+nav{justify-content:space-between}
+.nav-brand{color:#fff;font-weight:700}
+.nav-link{color:#cbd5e1;text-decoration:none;font-size:.9rem;border:1px solid #475569;border-radius:999px;padding:.35rem .85rem}
+.nav-link:hover{color:#fff;background:#334155}
+.page{padding:2rem 1.25rem 3rem;max-width:1100px;margin:0 auto}
+.hero{background:linear-gradient(135deg,#0f172a,#1d4ed8);color:#fff;border-radius:24px;padding:2rem 2rem 1.8rem;box-shadow:0 24px 60px rgba(15,23,42,.18)}
+.hero h1{font-size:clamp(1.8rem,4vw,2.8rem);margin-bottom:.8rem}
+.hero p{max-width:760px;line-height:1.75;color:#dbeafe;font-size:1rem}
+.hero-actions{margin-top:1.25rem;display:flex;gap:.75rem;flex-wrap:wrap}
+.hero-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;padding:.65rem 1rem;border-radius:999px;font-weight:600}
+.hero-link.primary{background:#fff;color:#1d4ed8}
+.hero-link.secondary{border:1px solid rgba(255,255,255,.28);color:#eff6ff}
+.spec-shell{margin-top:1.25rem;background:#fff;border:1px solid #dbe4f0;border-radius:24px;box-shadow:0 16px 48px rgba(15,23,42,.08);overflow:hidden}
+.spec-head{padding:1.1rem 1.4rem;border-bottom:1px solid #eef2f7;background:#f8fafc}
+.spec-head h2{font-size:1rem;margin-bottom:.35rem}
+.spec-head p{color:#64748b;line-height:1.7;font-size:.9rem}
+.spec-body{padding:1.35rem 1.4rem 1.5rem}
+.spec-section{margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid #eef2f7}
+.spec-section:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.spec-title{font-size:.95rem;font-weight:700;color:#0f172a;margin-bottom:.45rem}
+.spec-title code{background:#eef2ff;color:#3730a3;border-radius:6px;padding:.15rem .4rem;font-size:.82rem}
+.spec-desc{font-size:.9rem;line-height:1.8;color:#475569;margin-bottom:.65rem}
+.spec-code{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:1rem 1.1rem;font-size:.82rem;line-height:1.7;overflow:auto;white-space:pre}
+.spec-tbl{width:100%;border-collapse:collapse;font-size:.88rem}
+.spec-tbl tr{border-bottom:1px solid #eef2f7}
+.spec-tbl tr:last-child{border-bottom:none}
+.spec-tbl td{padding:.55rem .35rem;vertical-align:top;line-height:1.7}
+.spec-tbl td:first-child{width:180px}
+.spec-tbl td:first-child code{background:#eef2ff;color:#3730a3;border-radius:6px;padding:.12rem .4rem;font-size:.8rem;white-space:nowrap}
+@media (max-width:720px){
+  .page{padding:1rem .9rem 2rem}
+  .hero{padding:1.35rem 1.1rem}
+  .spec-head,.spec-body{padding:1rem}
+  .spec-tbl td:first-child{width:auto}
+}
+{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <h1>项目接入规范</h1>
+    <p>这个页面用于给业务项目方查看 Mini Deploy 的接入方式。支持 Python（pip / uv）、Java、前端和通用 Docker 项目，适合直接分享给接入同学或作为项目模板说明页。</p>
+    <div class="hero-actions">
+      <a class="hero-link primary" href="/">打开部署控制台</a>
+      <a class="hero-link secondary" href="https://github.com/byronicefield/mini-deploy" target="_blank" rel="noopener">查看仓库</a>
+    </div>
+  </section>
+
+  <section class="spec-shell">
+    <div class="spec-head">
+      <h2>接入约定</h2>
+      <p>推荐优先提供 <code>deploy/Dockerfile</code>，平台会基于工程类型自动选择构建策略，并在 Python 项目中按依赖清单做缓存复用。</p>
+    </div>
+    <div class="spec-body">
+      {{ spec_html }}
+    </div>
+  </section>
+{% endblock %}

@@ -8,7 +8,7 @@
 
 ## ✨ 功能特性
 
-- **多项目类型支持** — Python（智能依赖缓存）、Java（Maven/Gradle）、前端（Node.js）、通用 Docker
+- **多项目类型支持** — Python（支持 pip / uv 智能依赖缓存）、Java（Maven/Gradle）、前端（Node.js）、通用 Docker
 - **实时日志流** — Server-Sent Events 推送，部署过程零延迟可见
 - **自动回滚** — 健康检查失败时自动回滚到上一个镜像版本
 - **钩子系统** — 支持 `pre_build`、`post_build`、`pre_deploy`、`post_deploy` 四个阶段的自定义脚本
@@ -92,14 +92,33 @@ uvicorn main:app --host 0.0.0.0 --port 9999 --reload
 ### Python 项目
 
 - 仓库根目录或 `deploy/` 目录需含 `Dockerfile`
-- 推荐使用 multi-stage 构建（自动检测 `requirements.txt` 变化，复用 base 层缓存）
+- 推荐使用 multi-stage 构建
+- 工程类型选择 `Python` 后，可在平台中指定包管理器：
+  - `pip`：自动检测 `requirements.txt` 变化，复用 base 层缓存
+  - `uv`：自动检测 `pyproject.toml` / `uv.lock` 变化，复用 base 层缓存
+- 可直接访问独立接入规范页：`/deploy-spec`
 
 ```dockerfile
+# pip 示例
 FROM python:3.9-slim AS base
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 FROM base AS app
+COPY . .
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+```dockerfile
+# uv 示例
+FROM python:3.12-slim AS base
+WORKDIR /app
+RUN pip install --no-cache-dir uv
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
+FROM base AS app
+WORKDIR /app
 COPY . .
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
@@ -149,6 +168,7 @@ PROJECT_ID     # 工程 ID
 | 方法 | 端点 | 说明 |
 |------|------|------|
 | `GET` | `/` | Web 管理界面 |
+| `GET` | `/deploy-spec` | 独立项目接入规范页面 |
 | `POST` | `/projects` | 新增工程 |
 | `GET` | `/projects` | 获取所有工程及状态 |
 | `PUT` | `/projects/{id}` | 更新工程配置 |
@@ -169,7 +189,7 @@ PROJECT_ID     # 工程 ID
   │
   ├─ 1. Pulling   — git clone --depth=1 拉取最新代码
   ├─ 2. Building  — 根据项目类型选择构建策略
-  │     ├─ Python:   检测 requirements.txt → 复用/重建 base 镜像
+  │     ├─ Python:   检测 requirements.txt 或 pyproject.toml / uv.lock → 复用/重建 base 镜像
   │     ├─ Java:     Maven/Gradle 编译 → 打包 JAR → docker build
   │     ├─ Frontend: Node 容器 npm build → 复制产物
   │     └─ Generic:  docker build

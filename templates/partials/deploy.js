@@ -50,8 +50,15 @@ setInterval(updateTimes, 5000);
 
 // 添加工程弹窗 / Add project modal
 function openAddModal() {
-  document.getElementById('add-modal').style.display = '';
-  setTimeout(() => { const f = document.getElementById('add-modal').querySelector('input'); if(f) f.focus(); }, 50);
+  const modal = document.getElementById('add-modal');
+  const form = modal.querySelector('form');
+  if (form) {
+    form.reset();
+    const typeSel = form.querySelector('select[name="project_type"]');
+    if (typeSel) onProjectTypeChange(typeSel);
+  }
+  modal.style.display = '';
+  setTimeout(() => { const f = modal.querySelector('input'); if(f) f.focus(); }, 50);
 }
 function closeAddModal() {
   document.getElementById('add-modal').style.display = 'none';
@@ -261,13 +268,24 @@ async function saveSetting(event, key) {
 }
 
 // 工程类型切换 / Project type toggle
+function setSectionVisible(section, visible) {
+  section.style.display = visible ? '' : 'none';
+  section.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.name) el.disabled = !visible;
+    if (el.dataset.requiredWhenVisible === 'true') el.required = visible;
+  });
+}
+
 function onProjectTypeChange(sel) {
   const form = sel.closest('form');
-  const isFe = sel.value === 'frontend';
-  const isJava = sel.value === 'java';
-  form.querySelectorAll('[data-docker-only]').forEach(el => el.style.display = isFe ? 'none' : '');
-  form.querySelectorAll('[data-frontend-only]').forEach(el => el.style.display = isFe ? '' : 'none');
-  form.querySelectorAll('[data-java-only]').forEach(el => el.style.display = isJava ? '' : 'none');
+  const type = sel.value || '';
+  const isFe = type === 'frontend';
+  const isJava = type === 'java';
+  const isPython = type === 'python';
+  form.querySelectorAll('[data-docker-only]').forEach(el => setSectionVisible(el, !isFe));
+  form.querySelectorAll('[data-frontend-only]').forEach(el => setSectionVisible(el, isFe));
+  form.querySelectorAll('[data-java-only]').forEach(el => setSectionVisible(el, isJava));
+  form.querySelectorAll('[data-python-only]').forEach(el => setSectionVisible(el, isPython));
 }
 
 // 编辑工程 / Edit project
@@ -319,6 +337,10 @@ async function submitEditForm(event) {
     alert('保存失败: ' + (e.detail || '未知错误'));
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('select[name="project_type"]').forEach(onProjectTypeChange);
+});
 
 // 轮询工程状态 / Poll project status
 async function pollStatus(id) {

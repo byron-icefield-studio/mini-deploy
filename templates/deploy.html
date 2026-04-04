@@ -5,7 +5,7 @@
 
 {% block nav_content %}
   <span class="nav-title" style="color:#fff;font-weight:700">Mini Deploy</span>
-  <button class="spec-nav-btn" onclick="document.getElementById('spec-modal').style.display=''">接入规范</button>
+  <a class="spec-nav-btn" href="/deploy-spec" target="_blank" rel="noopener">接入规范</a>
 {% endblock %}
 
 {% block extra_css %}
@@ -111,7 +111,7 @@ details[open].card summary::after{content:" ↑";font-size:.75rem}
 .item-kv{font-size:.72rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;padding:.1rem .35rem;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .item-meta{font-size:.72rem;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;line-height:1.35}
 .sidebar-empty{padding:1.2rem .85rem;color:#94a3b8;font-size:.8rem;text-align:center}
-.spec-nav-btn{padding:.3rem .65rem;background:transparent;color:#94a3b8;border:1px solid #475569;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap;flex-shrink:0}
+.spec-nav-btn{padding:.3rem .65rem;background:transparent;color:#94a3b8;border:1px solid #475569;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
 .spec-nav-btn:hover{color:#fff;background:#334155}
 .spec-modal-card{width:min(860px,95vw)}
 .proj-detail-wrap{flex:1;min-width:0}
@@ -189,7 +189,6 @@ details[open].card summary::after{content:" ↑";font-size:.75rem}
 {% endblock %}
 
 {% block modals %}
-  {% include "partials/spec_modal.html" %}
   {% include "partials/add_modal.html" %}
   {% include "partials/edit_modal.html" %}
 {% endblock %}

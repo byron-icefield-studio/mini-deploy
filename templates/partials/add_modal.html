@@ -33,7 +33,11 @@
               <option value="java">Java</option>
               <option value="frontend">前端</option>
             </select>
-            <span class="form-hint">Python: base stage 缓存; Java: Maven/Gradle 构建; 前端: npm → nginx</span>
+            <span class="form-hint">Python: base stage 缓存; Java: Maven/Gradle 构建; 前端: npm → nginx。Python 项目通常无需手动指定依赖方式，平台会按仓库文件自动识别。</span>
+          </div>
+          <div class="form-row" data-python-only style="display:none">
+            <label>Python 依赖方式</label>
+            <div class="form-hint">无需配置，平台会自动识别。识别顺序为：<code>uv.lock</code> → <code>requirements.txt</code> → <code>pyproject.toml</code>。</div>
           </div>
           <div class="form-row" data-docker-only>
             <label>镜像名</label>
@@ -86,7 +90,7 @@
           </div>
           <div class="form-row" data-frontend-only style="display:none">
             <label>目标路径 *</label>
-            <input name="deploy_target_dir" placeholder="/usr/share/nginx/html">
+            <input name="deploy_target_dir" placeholder="/usr/share/nginx/html" data-required-when-visible="true">
           </div>
           <div class="form-actions">
             <button type="submit" class="primary-btn">保存</button>

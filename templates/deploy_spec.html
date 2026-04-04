@@ -1,120 +1,138 @@
-<!-- 项目接入规范 / Project Onboarding Spec
-     此文件由 deploy_api.py 读取并嵌入到部署管理页。
-     This file is read by deploy_api.py and embedded into the deploy management page.
+<!-- 项目接入规范 / Project onboarding spec
+     此文件同时用于独立接入规范页面。
+     This file is reused by the standalone onboarding page.
 -->
 <div class="spec-section">
   <div class="spec-title">必须 · <code>deploy/Dockerfile</code></div>
   <div class="spec-desc">
-    标准 Dockerfile，用于构建项目镜像。平台默认以此文件构建，无需其他脚本。
-    <br>若仓库根目录存在 <code>Dockerfile</code>，也会被识别（优先级低于 deploy/Dockerfile）。
+    建议在仓库根目录下提供 <code>deploy/Dockerfile</code> 作为 Mini Deploy 的统一构建入口；
+    若未提供，平台会回退识别根目录 <code>Dockerfile</code>。
+    <br>
+    推荐把依赖安装层和业务代码层拆开，这样 Python 工程才能稳定复用 base stage 缓存。
   </div>
-  <pre class="spec-code"># 通用示例
+  <pre class="spec-code"># 通用示例 / Generic example
 FROM python:3.11-slim
 WORKDIR /app
+
 COPY . .
 RUN pip install -r requirements.txt
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]</pre>
 </div>
 
 <div class="spec-section">
-  <div class="spec-title">工程类型 · Python（自动 base stage 缓存）</div>
+  <div class="spec-title">Python · pip（<code>requirements.txt</code>）</div>
   <div class="spec-desc">
-    工程类型设为 <strong>Python</strong> 时，平台在每次构建前自动检测 <code>requirements.txt</code> 是否变化：
-    未变化则跳过 pip install，直接复用已有 base 镜像；变化则先重建 base stage，再构建 app。
-    <br><br>
-    需将 Dockerfile 改为 multi-stage，用命名 stage 拆分依赖层与业务层：
+    Python 工程通常不需要在平台里额外选择依赖方式。
+    <br>
+    当仓库中存在 <code>requirements.txt</code>，平台会自动按 <strong>pip</strong> 模式处理，
+    平台会用 <code>requirements.txt + Dockerfile</code> 计算 base stage 哈希。
+    <br>
+    两者都不变时，跳过 base stage 重建，直接复用 <code>{服务名}-base:latest</code>。
   </div>
-  <pre class="spec-code"># Stage 1: base（依赖层，requirements.txt 不变时复用缓存）
-FROM python:3.9-slim AS base
-RUN apt-get install -y ... && pip install --upgrade pip
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+  <pre class="spec-code"># Stage 1: base（依赖层 / Dependency layer）
+FROM python:3.11-slim AS base
+WORKDIR /app
 
-# Stage 2: app（业务层，每次部署重新 COPY 代码）
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Stage 2: app（业务层 / App layer）
 FROM base AS app
 WORKDIR /app
+
 COPY . .
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]</pre>
+</div>
+
+<div class="spec-section">
+  <div class="spec-title">Python · uv（<code>pyproject.toml</code> / <code>uv.lock</code>）</div>
+  <div class="spec-desc">
+    当仓库中存在 <code>uv.lock</code> 时，平台会自动按 <strong>uv</strong> 模式处理，
+    平台会用 <code>pyproject.toml</code>、<code>uv.lock</code> 和 Dockerfile 计算 base stage 哈希。
+    <br>
+    推荐把 <code>uv sync</code> 放在 <code>base</code> stage 中，并在 app stage 只复制业务代码。
+  </div>
+  <pre class="spec-code"># Stage 1: base（uv 依赖层 / uv dependency layer）
+FROM python:3.11-slim AS base
+WORKDIR /app
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
+# Stage 2: app（业务层 / App layer）
+FROM base AS app
+WORKDIR /app
+
+COPY . .
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]</pre>
   <div class="spec-desc" style="margin-top:8px">
-    base 镜像名为 <code>{服务名}-base:latest</code>，hash 通过 docker image label <code>req_hash</code> 追踪。
-    无需编写 <code>pre_build.sh</code>，平台自动处理。
+    自动识别优先级为：<code>uv.lock</code> → <code>requirements.txt</code> → <code>pyproject.toml</code>。
+    一般情况下保持默认即可，无需额外配置。
   </div>
 </div>
 
 <div class="spec-section">
-  <div class="spec-title">工程类型 · Java（Maven / Gradle）</div>
+  <div class="spec-title">Python 工程配置建议</div>
+  <table class="spec-tbl">
+    <tr><td><code>工程类型</code></td><td>选择 <code>Python</code>，启用 base stage 缓存逻辑。</td></tr>
+    <tr><td><code>依赖方式</code></td><td>通常无需手动指定，平台会按仓库中的 <code>uv.lock</code> / <code>requirements.txt</code> 自动识别。</td></tr>
+    <tr><td><code>Dockerfile stage</code></td><td>请确保依赖层 stage 名称为 <code>base</code>，应用层 stage 建议为 <code>app</code>。</td></tr>
+  </table>
+</div>
+
+<div class="spec-section">
+  <div class="spec-title">Java（Maven / Gradle）</div>
   <div class="spec-desc">
-    工程类型设为 <strong>Java</strong> 时，平台自动在临时容器内执行 Maven 或 Gradle 构建：
-    <br>• 检测到 <code>pom.xml</code> → 使用 <code>maven:{java_version}-eclipse-temurin</code> 镜像执行 <code>mvn package -DskipTests</code>
-    <br>• 检测到 <code>build.gradle</code> / <code>build.gradle.kts</code> → 使用 <code>gradle:{java_version}-jdk</code> 镜像执行 <code>gradle build -x test</code>
-    <br>• 支持 <code>gradlew</code> wrapper（自动赋予执行权限）
-    <br>• 可通过「自定义构建命令」覆盖默认命令
-    <br><br>
-    构建完成后，平台使用 Dockerfile 打包最终镜像（JAR 已在 target/ 或 build/libs/ 中）：
+    工程类型设为 <strong>Java</strong> 时，平台会在临时容器内自动执行 Maven 或 Gradle 构建，
+    然后再使用仓库中的 Dockerfile 打包最终镜像。
   </div>
-  <pre class="spec-code"># Java 项目 Dockerfile 示例
+  <pre class="spec-code"># Maven 项目 / Maven example
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY target/*.jar app.jar
-EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
 
-# Gradle 项目
+# Gradle 项目 / Gradle example
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY build/libs/*.jar app.jar
-EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]</pre>
-  <div class="spec-desc" style="margin-top:8px">
-    Java 版本默认 <code>17</code>，可在工程配置中修改。
-  </div>
 </div>
 
 <div class="spec-section">
-  <div class="spec-title">工程类型 · 前端（npm → nginx）</div>
+  <div class="spec-title">前端（Node 构建 → 静态文件发布）</div>
   <div class="spec-desc">
-    工程类型设为 <strong>前端</strong> 时，平台在临时 node 容器内执行构建，
-    然后将 dist 目录的产物通过 <code>docker cp</code> 推入 nginx 容器或直接复制到宿主机目录。
-    <br>无需 Dockerfile，只需配置构建命令和目标路径。
+    工程类型设为 <strong>前端</strong> 时，平台会在临时 Node 容器中执行构建命令，
+    再把 <code>dist_dir</code> 指向的构建产物复制到 nginx 容器或宿主机目标目录。
+    <br>
+    前端项目通常不需要 Dockerfile，但需要正确配置构建命令、代码子目录和目标路径。
   </div>
 </div>
 
 <div class="spec-section">
   <div class="spec-title">可选 · <code>deploy/hooks/</code> 钩子系统</div>
   <div class="spec-desc">
-    在部署流程的关键节点注入自定义逻辑，脚本不存在则静默跳过。
-    脚本以 <code>bash</code> 执行，非零退出码中止部署。
+    平台会按顺序尝试执行以下钩子脚本；文件不存在时静默跳过，非零退出码会中止部署。
   </div>
   <table class="spec-tbl">
-    <tr>
-      <td><code>pre_build.sh</code></td>
-      <td>docker build 前执行。适合：自定义构建准备、生成配置文件等。</td>
-    </tr>
-    <tr>
-      <td><code>post_build.sh</code></td>
-      <td>docker build 后执行。适合：冒烟测试、推送镜像到 registry。</td>
-    </tr>
-    <tr>
-      <td><code>pre_deploy.sh</code></td>
-      <td>compose up 前执行。适合：数据库迁移、数据备份。</td>
-    </tr>
-    <tr>
-      <td><code>post_deploy.sh</code></td>
-      <td>健康检查通过后执行（仅非自重启场景）。适合：缓存预热、通知。</td>
-    </tr>
+    <tr><td><code>pre_build.sh</code></td><td>构建前执行，适合生成配置或准备依赖。</td></tr>
+    <tr><td><code>post_build.sh</code></td><td>镜像构建后执行，适合冒烟测试或推送镜像。</td></tr>
+    <tr><td><code>pre_deploy.sh</code></td><td>部署前执行，适合迁移数据库或备份数据。</td></tr>
+    <tr><td><code>post_deploy.sh</code></td><td>健康检查通过后执行，适合通知、预热缓存等。</td></tr>
   </table>
 </div>
 
 <div class="spec-section">
   <div class="spec-title">钩子环境变量</div>
-  <div class="spec-desc">平台自动注入以下变量到每个钩子脚本。</div>
   <table class="spec-tbl">
-    <tr><td><code>IMAGE</code></td><td>目标镜像名（如 <code>myapp:latest</code>）</td></tr>
-    <tr><td><code>ROLLBACK_TAG</code></td><td>回滚镜像名（如 <code>myapp:rollback</code>）</td></tr>
-    <tr><td><code>SERVICE</code></td><td>docker-compose 服务名</td></tr>
+    <tr><td><code>IMAGE</code></td><td>当前镜像名，如 <code>myapp:latest</code></td></tr>
+    <tr><td><code>ROLLBACK_TAG</code></td><td>回滚镜像标签，如 <code>myapp:rollback</code></td></tr>
+    <tr><td><code>SERVICE</code></td><td>docker compose 服务名</td></tr>
     <tr><td><code>COMPOSE_FILE</code></td><td>docker-compose.yml 路径</td></tr>
-    <tr><td><code>REPO_DIR</code></td><td>临时 clone 目录（含完整代码）</td></tr>
-    <tr><td><code>PROJECT_ID</code></td><td>平台工程 ID</td></tr>
+    <tr><td><code>REPO_DIR</code></td><td>临时 clone 代码目录</td></tr>
+    <tr><td><code>PROJECT_ID</code></td><td>平台内工程 ID</td></tr>
   </table>
 </div>
 
@@ -122,40 +140,41 @@ CMD ["java", "-jar", "app.jar"]</pre>
   <div class="spec-title">部署流程</div>
   <pre class="spec-code">git clone --depth=1 $REPO_URL /tmp/deploy_xxx
 
-# 备份当前镜像为 :rollback
+# 备份当前镜像
 docker tag $IMAGE $ROLLBACK_TAG
 
-# 构建阶段
-bash deploy/hooks/pre_build.sh    # 可选
+# 构建前钩子
+bash deploy/hooks/pre_build.sh
 
-# Python: 自动检测 requirements.txt 变化 → 按需重建 base stage
-# Java:   在临时 Maven/Gradle 容器内构建 → 产物复制回宿主机
-# 前端:   在临时 node 容器内 npm build → 产物复制回宿主机
+# Python
+#   pip: requirements.txt + Dockerfile 变化时重建 base
+#   uv:  pyproject.toml / uv.lock + Dockerfile 变化时重建 base
+#
+# Java
+#   Maven / Gradle 容器内构建，再使用 Dockerfile 打包镜像
+#
+# Frontend
+#   Node 容器内执行 build_command，然后复制 dist_dir 产物
 
-docker build -t $IMAGE -f deploy/Dockerfile .  # Python/Java/通用
-bash deploy/hooks/post_build.sh   # 可选
+docker build -t $IMAGE -f deploy/Dockerfile .
+bash deploy/hooks/post_build.sh
 
-# 部署阶段
-bash deploy/hooks/pre_deploy.sh   # 可选
+bash deploy/hooks/pre_deploy.sh
 docker compose -f $COMPOSE_FILE up -d --no-deps $SERVICE
 
-# 健康检查（等待 20s 后检查容器状态）
-# 失败则自动回滚
-
-bash deploy/hooks/post_deploy.sh  # 可选
-docker image prune -f</pre>
+# 健康检查失败则自动回滚
+bash deploy/hooks/post_deploy.sh</pre>
 </div>
 
 <div class="spec-section">
-  <div class="spec-title">配置项说明</div>
+  <div class="spec-title">平台配置项说明</div>
   <table class="spec-tbl">
-    <tr><td><code>仓库地址</code></td><td>GitHub HTTPS 地址（含 .git）</td></tr>
-    <tr><td><code>GitHub Token</code></td><td>Personal Access Token，私有仓库必填</td></tr>
-    <tr><td><code>服务名</code></td><td>docker-compose.yml 中的服务名</td></tr>
-    <tr><td><code>镜像名</code></td><td>留空则用「服务名:latest」</td></tr>
-    <tr><td><code>Compose 路径</code></td><td>容器内挂载的 docker-compose.yml 路径</td></tr>
-    <tr><td><code>工程类型</code></td><td>通用 / Python / Java / 前端</td></tr>
-    <tr><td><code>Java 版本</code></td><td>Java 工程使用的 JDK 版本（默认 17）</td></tr>
-    <tr><td><code>自重启服务</code></td><td>部署自身时勾选，通过独立容器执行 compose up</td></tr>
+    <tr><td><code>仓库地址</code></td><td>GitHub HTTPS 地址，私有仓库可配合 Token 使用。</td></tr>
+    <tr><td><code>服务名</code></td><td><code>docker-compose.yml</code> 中的服务名。</td></tr>
+    <tr><td><code>镜像名</code></td><td>留空时默认使用 <code>{服务名}:latest</code>。</td></tr>
+    <tr><td><code>Compose 路径</code></td><td>留空时使用全局默认 compose 文件。</td></tr>
+    <tr><td><code>自重启服务</code></td><td>用于部署 Mini Deploy 自身时的安全重启流程。</td></tr>
+    <tr><td><code>Java 版本</code></td><td>Java 工程使用的 Maven / Gradle 基础镜像版本。</td></tr>
+    <tr><td><code>Node 版本</code></td><td>前端工程构建使用的 Node 镜像版本。</td></tr>
   </table>
 </div>
