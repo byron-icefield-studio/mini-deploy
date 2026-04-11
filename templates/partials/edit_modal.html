@@ -11,15 +11,16 @@
         <div class="form-grid">
           <div class="form-row">
             <label>工程名称 *</label>
-            <input id="edit-name" name="name" required>
+            <input id="edit-name" name="name" required placeholder="My Project">
           </div>
           <div class="form-row">
             <label>服务名 *</label>
-            <input id="edit-service-name" name="service_name" required>
+            <input id="edit-service-name" name="service_name" required placeholder="my-service">
+            <span class="form-hint">docker-compose 中的服务名</span>
           </div>
           <div class="form-row form-full">
             <label>仓库地址 *</label>
-            <input id="edit-repo-url" name="repo_url" required>
+            <input id="edit-repo-url" name="repo_url" required placeholder="https://github.com/user/repo.git">
           </div>
           <div class="form-row">
             <label>GitHub Token</label>
@@ -33,7 +34,7 @@
               <option value="java">Java</option>
               <option value="frontend">前端</option>
             </select>
-            <span class="form-hint">Python 项目通常无需手动指定依赖方式，平台会按仓库文件自动识别。</span>
+            <span class="form-hint">Python: base stage 缓存; Java: Maven/Gradle 构建; 前端: npm → nginx。Python 项目通常无需手动指定依赖方式，平台会按仓库文件自动识别。</span>
           </div>
           <div class="form-row" data-python-only style="display:none">
             <label>Python 依赖方式</label>
@@ -42,44 +43,55 @@
           <div class="form-row" data-docker-only>
             <label>镜像名</label>
             <input id="edit-image-name" name="image_name" placeholder="myapp:latest">
+            <span class="form-hint">留空则用「服务名:latest」</span>
           </div>
           <div class="form-row form-full" data-docker-only>
             <label>Compose 路径</label>
             <input id="edit-compose-file" name="compose_file" placeholder="{{ compose_file or '/container-cluster/docker-compose.yml' }}">
+            <span class="form-hint">留空使用全局默认配置</span>
           </div>
           <div class="form-row form-full" data-docker-only>
             <label class="checkbox-label">
               <input type="checkbox" id="edit-self-service" name="self_service">
-              <span>自重启服务</span>
+              <span>自重启服务（当前工程部署自身，step 3 通过独立容器执行）</span>
             </label>
           </div>
           <div class="form-row" data-docker-only>
             <label>自定义构建命令</label>
-            <input id="edit-build-command" name="build_command">
+            <input id="edit-build-command" name="build_command" placeholder="留空使用默认">
+            <span class="form-hint">Java: 默认 mvn/gradle; 前端: 默认 npm run build</span>
           </div>
           <div class="form-row" data-java-only style="display:none">
             <label>Java 版本</label>
             <input id="edit-java-version" name="java_version" placeholder="17">
+            <span class="form-hint">Maven/Gradle 镜像的 Java 版本，留空默认 17</span>
+          </div>
+          <div class="form-row form-full" data-frontend-only style="display:none">
+            <label>构建命令</label>
+            <input id="edit-build-command-frontend" name="build_command" placeholder="npm run build">
+            <span class="form-hint">留空使用默认：npm run build</span>
           </div>
           <div class="form-row" data-frontend-only style="display:none">
             <label>前端代码子目录</label>
-            <input id="edit-app-dir" name="app_dir">
+            <input id="edit-app-dir" name="app_dir" placeholder="frontend">
+            <span class="form-hint">package.json 所在子目录（相对仓库根），留空表示根目录</span>
           </div>
           <div class="form-row" data-frontend-only style="display:none">
             <label>产物目录</label>
-            <input id="edit-dist-dir" name="dist_dir">
+            <input id="edit-dist-dir" name="dist_dir" placeholder="dist">
           </div>
           <div class="form-row" data-frontend-only style="display:none">
             <label>Node 版本</label>
-            <input id="edit-node-version" name="node_version">
+            <input id="edit-node-version" name="node_version" placeholder="lts">
           </div>
           <div class="form-row" data-frontend-only style="display:none">
             <label>nginx 容器名</label>
-            <input id="edit-nginx-container" name="nginx_container">
+            <input id="edit-nginx-container" name="nginx_container" placeholder="nginx">
+            <span class="form-hint">留空则直接写宿主机目录；填写则用 docker cp 推入容器</span>
           </div>
           <div class="form-row" data-frontend-only style="display:none">
-            <label>目标路径</label>
-            <input id="edit-deploy-target-dir" name="deploy_target_dir" data-required-when-visible="true">
+            <label>目标路径 *</label>
+            <input id="edit-deploy-target-dir" name="deploy_target_dir" placeholder="/usr/share/nginx/html" data-required-when-visible="true">
           </div>
           <div class="form-actions">
             <button type="submit" class="primary-btn">保存</button>

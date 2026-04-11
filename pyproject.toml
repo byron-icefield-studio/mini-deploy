@@ -1,0 +1,32 @@
+[project]
+# 项目元数据 / Project metadata
+name = "mini-deploy"
+version = "0.1.0"
+description = "轻量级部署管理服务 / Lightweight deployment management service"
+requires-python = ">=3.11"
+
+# 运行时依赖（对应原 requirements.txt）
+# Runtime dependencies (migrated from requirements.txt)
+dependencies = [
+    "fastapi==0.109.2",
+    "uvicorn==0.27.1",
+    "pydantic>=2.5.3",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.1",
+    "python-multipart>=0.0.20",
+    "jinja2>=3.1.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# 仅打包应用源文件，排除 deploy/ 等目录
+# Only package app source files, exclude deploy/ etc.
+packages = ["."]
+exclude = ["deploy/", "static/", "templates/", "__pycache__/"]
+
+[dependency-groups]
+# 开发依赖组（空，留作扩展）/ Dev dependency group (empty, for future use)
+dev = []

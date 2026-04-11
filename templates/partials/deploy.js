@@ -286,6 +286,18 @@ function onProjectTypeChange(sel) {
   form.querySelectorAll('[data-frontend-only]').forEach(el => setSectionVisible(el, isFe));
   form.querySelectorAll('[data-java-only]').forEach(el => setSectionVisible(el, isJava));
   form.querySelectorAll('[data-python-only]').forEach(el => setSectionVisible(el, isPython));
+
+  // 切换类型时同步两个 build_command 字段的值，保证提交数据一致
+  // Sync build_command value between general and frontend inputs on type switch
+  const bcGeneral  = form.querySelector('#edit-build-command');
+  const bcFrontend = form.querySelector('#edit-build-command-frontend');
+  if (bcGeneral && bcFrontend) {
+    if (isFe) {
+      bcFrontend.value = bcFrontend.value || bcGeneral.value;
+    } else {
+      bcGeneral.value = bcGeneral.value || bcFrontend.value;
+    }
+  }
 }
 
 // 编辑工程 / Edit project
@@ -303,6 +315,7 @@ function editProject(id) {
   const ptSel = document.getElementById('edit-project-type');
   ptSel.value = p.project_type || '';
   document.getElementById('edit-build-command').value = p.build_command || '';
+  document.getElementById('edit-build-command-frontend').value = p.build_command || '';
   document.getElementById('edit-app-dir').value = p.app_dir || '';
   document.getElementById('edit-dist-dir').value = p.dist_dir || '';
   document.getElementById('edit-nginx-container').value = p.nginx_container || '';
