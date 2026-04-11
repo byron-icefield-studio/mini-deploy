@@ -1,6 +1,6 @@
 # Stage 1: base deps（依赖层，pyproject.toml + uv.lock 不变时复用缓存）
-# Base stage: system deps + uv packages. Only rebuilt when pyproject.toml or uv.lock changes.
-FROM python:3.11-slim AS base
+# Base stage: uv official image + system deps. Only rebuilt when pyproject.toml or uv.lock changes.
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim AS base
 
 # 安装系统依赖和 Docker CLI / Install system deps and Docker CLI
 RUN apt-get update && \
@@ -8,8 +8,7 @@ RUN apt-get update && \
     curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && \
-    apt-get install -y docker-ce-cli && \
-    pip install uv --no-cache-dir
+    apt-get install -y docker-ce-cli
 
 # 仅复制依赖描述文件，充分利用层缓存
 # Copy only dependency manifests to maximize layer cache reuse
